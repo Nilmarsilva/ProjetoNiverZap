@@ -1,0 +1,14 @@
+// Correções para remover o tipo 'outro' do TemplatesComemorativosPage.tsx
+
+1. Alterar o valor padrão no formulário (linha 380):
+dataComemorativa: 'aniversario',
+
+2. Remover a condição para o tipo 'outro' no useEffect (já foi removida)
+
+3. Remover o caso 'outro' na função getDataComemorativaNome (já foi removido)
+
+4. Atualizar a interface e o esquema (já foram atualizados)
+
+5. Remover todas as comparações com o tipo 'outro' no código:
+- Substituir form.watch('dataComemorativa') === 'outro' por false
+- Substituir form.watch('dataComemorativa') !== 'outro' por true

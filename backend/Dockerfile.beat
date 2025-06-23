@@ -1,0 +1,13 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Instalar dependências
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar o código
+COPY . .
+
+# Comando para iniciar o beat do Celery
+CMD ["celery", "-A", "app.core.celery_app", "beat", "--loglevel=info"]

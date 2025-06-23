@@ -1,0 +1,159 @@
+
+# Configurações de Instalação do NiverZap
+
+## Requisitos do Sistema
+- Node.js 18.x ou superior
+- npm 8.x ou superior (ou Yarn 1.22.x)
+- Git
+
+## Instalação Frontend (React/Vite)
+
+1. Clone o repositório:
+```bash
+git clone [URL_DO_REPOSITORIO]
+cd niverzap-frontend
+```
+
+2. Instale as dependências:
+```bash
+npm install
+# ou
+yarn
+```
+
+3. Configure as variáveis de ambiente:
+```bash
+cp .env.example .env
+```
+
+4. Inicie o servidor de desenvolvimento:
+```bash
+npm run dev
+# ou
+yarn dev
+```
+
+5. Acesse o aplicativo em http://localhost:8080
+
+## Tecnologias Frontend
+- React 18.x
+- Vite
+- TypeScript
+- Tailwind CSS
+- shadcn/ui components
+- Zustand (gerenciamento de estado)
+- React Router DOM
+- React Hook Form
+- Zod (validação)
+- Lucide React (ícones)
+
+## Integração com Supabase
+1. Crie uma conta no Supabase (https://supabase.io)
+2. Crie um novo projeto
+3. Configure as seguintes variáveis de ambiente:
+```
+VITE_SUPABASE_URL=sua_url_do_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anon_do_supabase
+```
+
+## Integração com APIs WhatsApp (Backend)
+Para o backend com FastAPI, Supabase, Redis e Celery:
+
+1. Requisitos do backend:
+- Python 3.9+
+- Docker e Docker Compose
+
+2. Estrutura de diretórios sugerida:
+```
+backend/
+  ├── app/
+  │   ├── api/
+  │   │   ├── auth.py
+  │   │   ├── contacts.py
+  │   │   ├── messages.py
+  │   │   ├── templates.py
+  │   │   └── webhooks.py
+  │   ├── core/
+  │   │   ├── config.py
+  │   │   └── security.py
+  │   ├── db/
+  │   │   └── models.py
+  │   ├── integrations/
+  │   │   ├── zapi/
+  │   │   ├── official_api/
+  │   │   └── evolution_api/
+  │   ├── tasks/
+  │   │   └── messages.py
+  │   └── main.py
+  ├── docker-compose.yml
+  ├── Dockerfile
+  ├── requirements.txt
+  └── .env.example
+```
+
+3. Principais dependências:
+```
+fastapi
+uvicorn
+redis
+celery
+supabase
+python-jose[cryptography]
+passlib[bcrypt]
+pydantic
+pydantic-settings
+httpx
+```
+
+4. Iniciar com Docker Compose:
+```bash
+docker-compose up -d
+```
+
+## Conectores WhatsApp Suportados
+- Z-API (Plano Free)
+- API Oficial do WhatsApp (Plano Profissional)
+- Evolution API (Plano Avançado)
+- Outras APIs alternativas (Plano Avançado)
+
+## Banco de Dados (Supabase/PostgreSQL)
+Tabelas necessárias:
+- users
+- contacts
+- message_templates
+- messages
+- message_logs
+- plans
+- integrations
+
+## Variáveis de Ambiente Necessárias
+```
+# Supabase
+SUPABASE_URL=
+SUPABASE_SERVICE_KEY=
+
+# Redis
+REDIS_URL=redis://redis:6379/0
+
+# Z-API
+ZAPI_INSTANCE=
+ZAPI_TOKEN=
+
+# API Oficial WhatsApp
+WA_PHONE_NUMBER_ID=
+WA_ACCESS_TOKEN=
+
+# Evolution API
+EVOLUTION_API_URL=
+EVOLUTION_API_KEY=
+
+# Segurança
+JWT_SECRET_KEY=
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Serviços de Pagamento
+ASAAS_API_KEY=
+# OU
+MONETIZZE_KEY=
+```

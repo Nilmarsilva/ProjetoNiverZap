@@ -1,0 +1,102 @@
+
+/* 
+ * Arquivo de estilos principal do DataZAP
+ * 
+ * Este arquivo usa diretivas do Tailwind CSS (@tailwind, @apply, etc.)
+ * que podem gerar avisos no editor, mas funcionam corretamente durante
+ * a compilação do projeto.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 142 70% 45%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 142 30% 90%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 142 30% 90%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142 70% 45%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 142 70% 25%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 142 70% 45%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 142 50% 35%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 142 50% 20%;
+    --sidebar-ring: 142 70% 45%;
+  }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground;
+  }
+
+  * {
+    @apply border-border;
+  }
+}
+
+/* Classes personalizadas para o DataZAP */
+@layer components {
+  .datazap-container {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .page-title {
+    @apply text-2xl font-bold text-gray-800 mb-6;
+  }
+  
+  .datazap-card {
+    @apply bg-white rounded-lg border border-gray-100 shadow-sm p-6;
+  }
+  
+  .stats-card {
+    @apply bg-white rounded-lg border border-gray-100 shadow-sm p-4 flex flex-col;
+  }
+  
+  .stats-value {
+    @apply text-2xl font-bold text-datazap-green;
+  }
+  
+  .stats-label {
+    @apply text-sm text-gray-500;
+  }
+  
+  /* Estilo personalizado para o hover da sidebar */
+  .sidebar-nav-item {
+    @apply transition-all duration-150;
+  }
+  
+  .sidebar-nav-item:hover {
+    @apply bg-datazap-green/30 pl-5;
+  }
+}

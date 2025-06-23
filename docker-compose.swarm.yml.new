@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  # Serviço da API FastAPI
+  api:
+    image: niverzap-api:latest
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "8000:8000"
+    environment:
+      - API_V1_STR=/api/v1
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+      - PROJECT_NAME=NiverZap API
+      - BACKEND_CORS_ORIGINS=["https://seu-dominio.com"]
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      # Configurações de conexão direta com PostgreSQL
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_SSL=${POSTGRES_SSL}
+      # Configurações do Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Configurações das APIs de WhatsApp
+      - ZAPI_INSTANCE=${ZAPI_INSTANCE}
+      - ZAPI_TOKEN=${ZAPI_TOKEN}
+      - WHATSAPP_OFFICIAL_PHONE_ID=${WHATSAPP_OFFICIAL_PHONE_ID}
+      - WHATSAPP_OFFICIAL_TOKEN=${WHATSAPP_OFFICIAL_TOKEN}
+      - WHATSAPP_OFFICIAL_VERSION=${WHATSAPP_OFFICIAL_VERSION}
+      - EVOLUTION_API_URL=${EVOLUTION_API_URL}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+    networks:
+      - niverzap-network
+
+  # Serviço do worker do Celery
+  worker:
+    image: niverzap-worker:latest
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    environment:
+      - API_V1_STR=/api/v1
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+      - PROJECT_NAME=NiverZap API
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      # Configurações de conexão direta com PostgreSQL
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_SSL=${POSTGRES_SSL}
+      # Configurações do Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Configurações das APIs de WhatsApp
+      - ZAPI_INSTANCE=${ZAPI_INSTANCE}
+      - ZAPI_TOKEN=${ZAPI_TOKEN}
+      - WHATSAPP_OFFICIAL_PHONE_ID=${WHATSAPP_OFFICIAL_PHONE_ID}
+      - WHATSAPP_OFFICIAL_TOKEN=${WHATSAPP_OFFICIAL_TOKEN}
+      - WHATSAPP_OFFICIAL_VERSION=${WHATSAPP_OFFICIAL_VERSION}
+      - EVOLUTION_API_URL=${EVOLUTION_API_URL}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+    networks:
+      - niverzap-network
+
+  # Serviço do beat do Celery (apenas uma instância)
+  beat:
+    image: niverzap-beat:latest
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    environment:
+      - API_V1_STR=/api/v1
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+      - PROJECT_NAME=NiverZap API
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      # Configurações de conexão direta com PostgreSQL
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_SSL=${POSTGRES_SSL}
+      # Configurações do Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Configurações das APIs de WhatsApp
+      - ZAPI_INSTANCE=${ZAPI_INSTANCE}
+      - ZAPI_TOKEN=${ZAPI_TOKEN}
+      - WHATSAPP_OFFICIAL_PHONE_ID=${WHATSAPP_OFFICIAL_PHONE_ID}
+      - WHATSAPP_OFFICIAL_TOKEN=${WHATSAPP_OFFICIAL_TOKEN}
+      - WHATSAPP_OFFICIAL_VERSION=${WHATSAPP_OFFICIAL_VERSION}
+      - EVOLUTION_API_URL=${EVOLUTION_API_URL}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+    networks:
+      - niverzap-network
+
+  # Serviço do Redis
+  redis:
+    image: redis:alpine
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - niverzap-network
+
+  # Serviço do frontend (React)
+  frontend:
+    image: niverzap-frontend:latest
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "3000:3000"
+    networks:
+      - niverzap-network
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  niverzap-network:
+    driver: overlay
+    attachable: true
