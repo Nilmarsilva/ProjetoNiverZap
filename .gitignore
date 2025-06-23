@@ -3,8 +3,8 @@ node_modules/
 */node_modules/
 
 # Arquivos de ambiente
-.env
-*/.env
+
+
 
 # Arquivos de build
 dist/
@@ -36,3 +36,8 @@ Thumbs.db
 # package-lock.json
 # yarn.lock
 # bun.lockb
+
+# pastas de stacks e docker
+stacks/
+
+

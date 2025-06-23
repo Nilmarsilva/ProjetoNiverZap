@@ -167,7 +167,20 @@ O frontend estará disponível em `http://localhost:5173` e o backend em `http:/
 
 ## Status de Implementação
 
-O projeto está migrando de um armazenamento em memória para um banco de dados PostgreSQL escalável. As migrações e modelos já foram criados e estão prontos para uso.
+### Progresso atual:
+
+- [x] Configuração do repositório Git unificado
+- [x] Configuração da infraestrutura na VPS (PostgreSQL, Redis, Traefik)
+- [x] Criação das migrações para o banco de dados PostgreSQL
+- [x] Criação dos seeds para planos padrão e usuário administrador
+- [x] Configuração das variáveis de ambiente para conexão com serviços externos
+- [ ] Execução das migrações no banco de dados
+- [ ] Execução dos seeds para dados iniciais
+- [ ] Atualização dos controladores para usar os novos modelos PostgreSQL
+- [ ] Implementação do serviço de cache com Redis
+- [ ] Documentação dos endpoints da API
+
+O projeto está migrando de um armazenamento em memória para um banco de dados PostgreSQL escalável com arquitetura multi-tenant. As migrações, modelos e seeds já foram criados e estão prontos para uso.
 
 ## Integração com Asaas
 
@@ -193,6 +206,55 @@ O Z-API é utilizado para:
 3. Implementar a integração com Z-API para envio de mensagens
 4. Desenvolver o sistema de agendamento de mensagens
 5. Implementar a importação em massa de contatos
+
+## Infraestrutura e Implantação
+
+### Infraestrutura na VPS
+
+O projeto utiliza Docker Swarm para orquestrar os seguintes serviços:
+
+- **PostgreSQL**: Banco de dados principal com suporte a pgvector
+- **Redis**: Cache e gerenciamento de filas
+- **Traefik**: Proxy reverso e gerenciamento de SSL
+- **Portainer**: Interface de gerenciamento de contêineres
+- **pgAdmin**: Interface de administração do PostgreSQL
+- **MinIO**: Armazenamento de objetos compatível com S3
+
+Todos os serviços estão configurados em arquivos de stack no diretório `/stacks` e são implantados usando Docker Swarm.
+
+### Configuração DNS
+
+O domínio principal `authbrasil.app.br` está configurado com:
+- Registro A para `server.authbrasil.app.br` apontando para o IP da VPS
+- Registros CNAME para subdomínios (api, app, pg, etc.) apontando para `server.authbrasil.app.br`
+
+### Implantação Local
+
+Para desenvolvimento local, o projeto pode ser executado com:
+
+```bash
+# Backend
+cd server
+npm install
+npm run dev
+
+# Frontend
+cd ../
+npm install
+npm run dev
+```
+
+### Implantação em Produção
+
+O projeto é implantado usando Docker Swarm:
+
+```bash
+# Construir a imagem
+docker build -t niverzap-app .
+
+# Implantar a stack
+docker stack deploy -c docker-stack.yml niverzap
+```
 
 ## Contribuição
 

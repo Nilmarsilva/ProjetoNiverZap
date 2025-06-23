@@ -3,6 +3,17 @@
 
 ## PROGRESSO DE IMPLEMENTAÇÃO (Atualizado em 23/06/2025)
 
+### 0. Configuração da Infraestrutura
+- [x] Configurar Docker Swarm na VPS
+  * Serviços implantados: PostgreSQL, Redis, Traefik, Portainer, pgAdmin, MinIO
+  * Arquivos de configuração adicionados na pasta `/stacks`
+- [x] Configurar DNS para o domínio authbrasil.app.br
+  * Registro A para server.authbrasil.app.br (89.116.186.161)
+  * Registros CNAME para subdomínios (api, app, pg, etc.)
+- [x] Configurar repositório Git unificado
+  * Resolvido problema de repositórios Git aninhados
+  * Configurado repositório único com estrutura organizada
+
 ### 1. Configurar Knex.js e Criar Migrações
 - [x] Instalar Knex.js e driver pg (já estavam instalados no projeto)
   * Commit: N/A - Já existente no package.json
@@ -48,10 +59,12 @@
 ### 1. Executar Migrações e Criar Seeds
 - [ ] Executar migrações no banco de dados PostgreSQL
   * `cd server && npx knex migrate:latest`
-- [ ] Criar seeds para planos padrão
-  * Criar arquivo: server/src/database/seeds/01_plans.js
-- [ ] Criar seed para usuário administrador
-  * Criar arquivo: server/src/database/seeds/02_admin_user.js
+- [x] Criar seeds para planos padrão
+  * Arquivo criado: server/src/database/seeds/01_plans.js
+  * Implementa 4 planos: Gratuito, Básico, Profissional e Empresarial
+- [x] Criar seed para usuário administrador
+  * Arquivo criado: server/src/database/seeds/02_admin_user.js
+  * Cria organização admin e usuário admin@niverzap.com
 - [ ] Executar seeds
   * `cd server && npx knex seed:run`
 
