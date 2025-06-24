@@ -66,8 +66,10 @@
 - [x] Criar seed para usuário administrador
   * Arquivo criado: server/src/database/seeds/02_admin_user.js
   * Cria organização admin e usuário admin@niverzap.com
-- [ ] Executar seeds
-  * `cd server && npx knex seed:run`
+- [x] Executar seeds
+  * Seeds executados manualmente via pgAdmin em 24/06/2025
+  * Inseridos 4 planos padrão: Gratuito, Básico, Profissional e Empresarial
+  * Inserida organização admin e usuário administrador
 
 ### 2. Atualizar Controladores
 - [ ] Atualizar authController.js para usar os novos modelos
