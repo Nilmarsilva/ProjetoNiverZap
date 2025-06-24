@@ -57,8 +57,9 @@
 ## PRÓXIMOS PASSOS IMEDIATOS
 
 ### 1. Executar Migrações e Criar Seeds
-- [ ] Executar migrações no banco de dados PostgreSQL
-  * `cd server && npx knex migrate:latest`
+- [x] Executar migrações no banco de dados PostgreSQL
+  * Migrações executadas manualmente via pgAdmin em 24/06/2025
+  * Todas as tabelas criadas com sucesso: plans, organizations, users, customers, message_templates, messages, subscriptions, events
 - [x] Criar seeds para planos padrão
   * Arquivo criado: server/src/database/seeds/01_plans.js
   * Implementa 4 planos: Gratuito, Básico, Profissional e Empresarial

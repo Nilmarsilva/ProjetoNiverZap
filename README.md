@@ -174,7 +174,7 @@ O frontend estará disponível em `http://localhost:5173` e o backend em `http:/
 - [x] Criação das migrações para o banco de dados PostgreSQL
 - [x] Criação dos seeds para planos padrão e usuário administrador
 - [x] Configuração das variáveis de ambiente para conexão com serviços externos
-- [ ] Execução das migrações no banco de dados
+- [x] Execução das migrações no banco de dados (24/06/2025)
 - [ ] Execução dos seeds para dados iniciais
 - [ ] Atualização dos controladores para usar os novos modelos PostgreSQL
 - [ ] Implementação do serviço de cache com Redis
