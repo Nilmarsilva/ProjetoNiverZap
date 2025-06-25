@@ -176,8 +176,9 @@ O frontend estará disponível em `http://localhost:5173` e o backend em `http:/
 - [x] Configuração das variáveis de ambiente para conexão com serviços externos
 - [x] Execução das migrações no banco de dados (24/06/2025)
 - [x] Execução dos seeds para dados iniciais (24/06/2025)
-- [x] Atualização parcial dos controladores para usar os novos modelos PostgreSQL (25/06/2025)
+- [x] Atualização dos controladores para usar os novos modelos PostgreSQL (25/06/2025)
 - [x] contactController.js migrado para usar o modelo Customer
+- [x] authController.js atualizado com melhorias para integração com PostgreSQL
 - [ ] Implementação do serviço de cache com Redis
 - [ ] Documentação dos endpoints da API
 

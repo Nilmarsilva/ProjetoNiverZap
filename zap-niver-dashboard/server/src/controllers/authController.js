@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/userModel');
+const Organization = require('../models/organizationModel');
 
 /**
  * Controlador para autenticação de usuários
@@ -11,7 +12,7 @@ const authController = {
    */
   register: async (req, res) => {
     try {
-      const { name, email, password } = req.body;
+      const { name, email, password, organization_id } = req.body;
 
       // Verificar se todos os campos necessários foram fornecidos
       if (!name || !email || !password) {
@@ -37,13 +38,22 @@ const authController = {
         name,
         email,
         password: hashedPassword,
+        organization_id, // Adiciona a organização se fornecida
+        role: 'user', // Papel padrão
         is_active: true,
-        created_at: new Date().toISOString()
+        created_at: new Date(),
+        updated_at: new Date()
       });
 
       // Gerar token JWT
       const token = jwt.sign(
-        { id: newUser.id, email: newUser.email, name: newUser.name },
+        { 
+          id: newUser.id, 
+          email: newUser.email, 
+          name: newUser.name,
+          organization_id: newUser.organization_id,
+          role: newUser.role
+        },
         process.env.JWT_SECRET || 'niverzap_jwt_secret_key_2025',
         { expiresIn: '7d' }
       );
@@ -101,9 +111,18 @@ const authController = {
         });
       }
 
+      // Registrar o último login
+      await User.updateLastLogin(user.id);
+
       // Gerar token JWT
       const token = jwt.sign(
-        { id: user.id, email: user.email, name: user.name },
+        { 
+          id: user.id, 
+          email: user.email, 
+          name: user.name,
+          organization_id: user.organization_id,
+          role: user.role
+        },
         process.env.JWT_SECRET || 'niverzap_jwt_secret_key_2025',
         { expiresIn: '7d' }
       );
@@ -144,7 +163,7 @@ const authController = {
       // Verificar o token
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'niverzap_jwt_secret_key_2025');
       
-      // Buscar o usuário pelo ID
+      // Buscar o usuário pelo ID com informações da organização
       const user = await User.findById(decoded.id);
       
       if (!user) {
@@ -160,6 +179,17 @@ const authController = {
           error: 'Conta desativada',
           valid: false
         });
+      }
+
+      // Verificar se a organização do usuário está ativa (se não for admin)
+      if (user.role !== 'admin' && user.organization_id) {
+        const organization = await Organization.findById(user.organization_id);
+        if (!organization || !organization.is_active) {
+          return res.status(401).json({ 
+            error: 'Organização desativada',
+            valid: false
+          });
+        }
       }
 
       // Retornar resposta sem a senha

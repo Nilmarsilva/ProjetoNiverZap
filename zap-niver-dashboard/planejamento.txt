@@ -72,8 +72,10 @@
   * Inserida organização admin e usuário administrador
 
 ### 2. Atualizar Controladores
-- [ ] Atualizar authController.js para usar os novos modelos
-  * Adaptar métodos register, login e verifyToken
+- [x] Atualizar authController.js para usar os novos modelos (25/06/2025)
+  * Adaptados métodos register, login e verifyToken
+  * Adicionado suporte para associar usuário a uma organização
+  * Implementado registro de último login
 - [x] Atualizar contactController.js para usar o modelo Customer (25/06/2025)
   * Migrado de modelo em memória para PostgreSQL
   * Adaptado para usar organization_id em vez de user_id
