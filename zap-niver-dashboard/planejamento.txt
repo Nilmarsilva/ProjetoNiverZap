@@ -74,7 +74,11 @@
 ### 2. Atualizar Controladores
 - [ ] Atualizar authController.js para usar os novos modelos
   * Adaptar métodos register, login e verifyToken
-- [ ] Atualizar contactController.js para usar o modelo Customer
+- [x] Atualizar contactController.js para usar o modelo Customer (25/06/2025)
+  * Migrado de modelo em memória para PostgreSQL
+  * Adaptado para usar organization_id em vez de user_id
+  * Implementadas validações de segurança
+- [ ] Atualizar userController.js para usar os novos modelos Customer
   * Adaptar métodos para buscar contatos e aniversariantes
 - [ ] Implementar organizationController.js
   * Criar endpoints para gerenciamento de organizações

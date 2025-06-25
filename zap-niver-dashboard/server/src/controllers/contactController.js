@@ -1,46 +1,8 @@
 /**
  * Controlador para gerenciamento de contatos
  */
-
-// Modelo temporário de contatos (será substituído pelo banco de dados)
-const contactsDb = new Map();
-
-// Gerar um ID único
-const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-};
-
-// Função auxiliar para verificar se uma data de aniversário é hoje
-const isBirthdayToday = (birthDate) => {
-  if (!birthDate) return false;
-  
-  const today = new Date();
-  const birth = new Date(birthDate);
-  
-  return today.getMonth() === birth.getMonth() && 
-         today.getDate() === birth.getDate();
-};
-
-// Função auxiliar para verificar se uma data de aniversário está nos próximos X dias
-const isUpcomingBirthday = (birthDate, days = 30) => {
-  if (!birthDate) return false;
-  
-  const today = new Date();
-  const birth = new Date(birthDate);
-  const futureDate = new Date(today);
-  futureDate.setDate(today.getDate() + days);
-  
-  // Ajustar para o ano atual
-  const thisYearBirthday = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
-  
-  // Se o aniversário deste ano já passou, verificar para o próximo ano
-  if (thisYearBirthday < today) {
-    thisYearBirthday.setFullYear(today.getFullYear() + 1);
-  }
-  
-  // Verificar se está dentro do período especificado
-  return thisYearBirthday <= futureDate;
-};
+const Customer = require('../models/customerModel');
+const { v4: uuidv4 } = require('uuid');
 
 const contactController = {
   /**
@@ -48,20 +10,20 @@ const contactController = {
    */
   getUserContacts: async (req, res) => {
     try {
-      const userId = req.user.id;
-      const contacts = [];
+      const organizationId = req.user.organization_id;
       
-      // Buscar contatos do usuário
-      for (const [_, contact] of contactsDb) {
-        if (contact.user_id === userId) {
-          contacts.push(contact);
-        }
-      }
+      // Buscar contatos da organização com paginação
+      const options = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 50,
+        search: req.query.search || '',
+        orderBy: req.query.orderBy || 'name',
+        orderDirection: req.query.orderDirection || 'asc'
+      };
       
-      // Ordenar por nome
-      contacts.sort((a, b) => a.name.localeCompare(b.name));
+      const result = await Customer.findByOrganization(organizationId, options);
       
-      res.status(200).json({ contacts });
+      res.status(200).json(result);
     } catch (error) {
       console.error('Erro ao buscar contatos:', error);
       res.status(500).json({ error: 'Erro ao buscar contatos' });
@@ -73,17 +35,12 @@ const contactController = {
    */
   countUserContacts: async (req, res) => {
     try {
-      const userId = req.user.id;
-      let count = 0;
+      const organizationId = req.user.organization_id;
       
-      // Contar contatos do usuário
-      for (const [_, contact] of contactsDb) {
-        if (contact.user_id === userId) {
-          count++;
-        }
-      }
+      // Contar contatos da organização
+      const result = await Customer.findByOrganization(organizationId, { limit: 1 });
       
-      res.status(200).json({ count });
+      res.status(200).json({ count: result.pagination.total });
     } catch (error) {
       console.error('Erro ao contar contatos:', error);
       res.status(500).json({ error: 'Erro ao contar contatos' });
@@ -95,23 +52,15 @@ const contactController = {
    */
   getTodayBirthdays: async (req, res) => {
     try {
-      const userId = req.user.id;
-      const birthdays = [];
+      const organizationId = req.user.organization_id;
       
-      // Buscar contatos do usuário que fazem aniversário hoje
-      for (const [_, contact] of contactsDb) {
-        if (contact.user_id === userId && isBirthdayToday(contact.birth_date)) {
-          birthdays.push(contact);
-        }
-      }
+      // Buscar aniversariantes do dia
+      const birthdays = await Customer.findBirthdays(organizationId, { today: true });
       
-      // Ordenar por nome
-      birthdays.sort((a, b) => a.name.localeCompare(b.name));
-      
-      res.status(200).json({ contacts: birthdays });
+      res.status(200).json({ birthdays });
     } catch (error) {
-      console.error('Erro ao buscar aniversariantes:', error);
-      res.status(500).json({ error: 'Erro ao buscar aniversariantes' });
+      console.error('Erro ao buscar aniversariantes do dia:', error);
+      res.status(500).json({ error: 'Erro ao buscar aniversariantes do dia' });
     }
   },
   
@@ -120,33 +69,13 @@ const contactController = {
    */
   getUpcomingBirthdays: async (req, res) => {
     try {
-      const userId = req.user.id;
+      const organizationId = req.user.organization_id;
       const days = parseInt(req.query.days) || 30;
-      const birthdays = [];
       
-      // Buscar contatos do usuário que fazem aniversário nos próximos X dias
-      for (const [_, contact] of contactsDb) {
-        if (contact.user_id === userId && isUpcomingBirthday(contact.birth_date, days)) {
-          birthdays.push(contact);
-        }
-      }
+      // Buscar próximos aniversariantes
+      const birthdays = await Customer.findBirthdays(organizationId, { days });
       
-      // Ordenar por proximidade da data
-      birthdays.sort((a, b) => {
-        const dateA = new Date(a.birth_date);
-        const dateB = new Date(b.birth_date);
-        
-        const today = new Date();
-        const thisYearA = new Date(today.getFullYear(), dateA.getMonth(), dateA.getDate());
-        const thisYearB = new Date(today.getFullYear(), dateB.getMonth(), dateB.getDate());
-        
-        if (thisYearA < today) thisYearA.setFullYear(today.getFullYear() + 1);
-        if (thisYearB < today) thisYearB.setFullYear(today.getFullYear() + 1);
-        
-        return thisYearA.getTime() - thisYearB.getTime();
-      });
-      
-      res.status(200).json({ contacts: birthdays });
+      res.status(200).json({ birthdays });
     } catch (error) {
       console.error('Erro ao buscar próximos aniversariantes:', error);
       res.status(500).json({ error: 'Erro ao buscar próximos aniversariantes' });
@@ -158,19 +87,15 @@ const contactController = {
    */
   getContactById: async (req, res) => {
     try {
-      const contactId = req.params.id;
-      const userId = req.user.id;
+      const { id } = req.params;
+      const organizationId = req.user.organization_id;
       
       // Buscar o contato
-      const contact = contactsDb.get(contactId);
+      const contact = await Customer.findById(id);
       
-      if (!contact) {
+      // Verificar se o contato existe e pertence à organização do usuário
+      if (!contact || contact.organization_id !== organizationId) {
         return res.status(404).json({ error: 'Contato não encontrado' });
-      }
-      
-      // Verificar se o contato pertence ao usuário
-      if (contact.user_id !== userId) {
-        return res.status(403).json({ error: 'Acesso negado' });
       }
       
       res.status(200).json({ contact });
@@ -185,32 +110,34 @@ const contactController = {
    */
   createContact: async (req, res) => {
     try {
-      const userId = req.user.id;
-      const contactData = req.body;
+      const { name, email, phone, birth_date, tags, custom_fields } = req.body;
+      const organizationId = req.user.organization_id;
       
       // Validar campos obrigatórios
-      if (!contactData.name || !contactData.phone) {
+      if (!name || !phone) {
         return res.status(400).json({ error: 'Nome e telefone são obrigatórios' });
       }
       
-      // Criar o contato
-      const id = generateId();
-      const newContact = {
-        id,
-        user_id: userId,
-        name: contactData.name,
-        phone: contactData.phone,
-        birth_date: contactData.birth_date || null,
-        email: contactData.email || null,
-        address: contactData.address || null,
-        group: contactData.group || null,
-        notes: contactData.notes || null,
-        custom_fields: contactData.custom_fields || {},
-        created_at: new Date().toISOString()
-      };
+      // Verificar se já existe um contato com o mesmo telefone
+      const existingContact = await Customer.findByPhone(organizationId, phone);
+      if (existingContact) {
+        return res.status(400).json({ error: 'Já existe um contato com este telefone' });
+      }
       
-      // Salvar o contato
-      contactsDb.set(id, newContact);
+      // Criar o novo contato
+      const newContact = await Customer.create({
+        id: uuidv4(),
+        organization_id: organizationId,
+        name,
+        email,
+        phone,
+        birth_date,
+        tags: tags || [],
+        custom_fields: custom_fields || {},
+        status: 'active',
+        created_at: new Date(),
+        updated_at: new Date()
+      });
       
       res.status(201).json({ 
         message: 'Contato criado com sucesso',
@@ -227,33 +154,41 @@ const contactController = {
    */
   updateContact: async (req, res) => {
     try {
-      const contactId = req.params.id;
-      const userId = req.user.id;
-      const contactData = req.body;
+      const { id } = req.params;
+      const { name, email, phone, birth_date, tags, custom_fields } = req.body;
+      const organizationId = req.user.organization_id;
       
       // Buscar o contato
-      const contact = contactsDb.get(contactId);
+      const contact = await Customer.findById(id);
       
-      if (!contact) {
+      // Verificar se o contato existe e pertence à organização do usuário
+      if (!contact || contact.organization_id !== organizationId) {
         return res.status(404).json({ error: 'Contato não encontrado' });
       }
       
-      // Verificar se o contato pertence ao usuário
-      if (contact.user_id !== userId) {
-        return res.status(403).json({ error: 'Acesso negado' });
+      // Validar campos obrigatórios
+      if (!name || !phone) {
+        return res.status(400).json({ error: 'Nome e telefone são obrigatórios' });
+      }
+      
+      // Verificar se já existe outro contato com o mesmo telefone
+      if (phone !== contact.phone) {
+        const existingContact = await Customer.findByPhone(organizationId, phone);
+        if (existingContact && existingContact.id !== id) {
+          return res.status(400).json({ error: 'Já existe um contato com este telefone' });
+        }
       }
       
       // Atualizar o contato
-      const updatedContact = {
-        ...contact,
-        ...contactData,
-        id: contactId, // Garantir que o ID não seja alterado
-        user_id: userId, // Garantir que o user_id não seja alterado
-        updated_at: new Date().toISOString()
-      };
-      
-      // Salvar o contato atualizado
-      contactsDb.set(contactId, updatedContact);
+      const updatedContact = await Customer.update(id, {
+        name,
+        email,
+        phone,
+        birth_date,
+        tags: tags || contact.tags,
+        custom_fields: custom_fields || contact.custom_fields,
+        updated_at: new Date()
+      });
       
       res.status(200).json({ 
         message: 'Contato atualizado com sucesso',
@@ -270,25 +205,23 @@ const contactController = {
    */
   deleteContact: async (req, res) => {
     try {
-      const contactId = req.params.id;
-      const userId = req.user.id;
+      const { id } = req.params;
+      const organizationId = req.user.organization_id;
       
       // Buscar o contato
-      const contact = contactsDb.get(contactId);
+      const contact = await Customer.findById(id);
       
-      if (!contact) {
+      // Verificar se o contato existe e pertence à organização do usuário
+      if (!contact || contact.organization_id !== organizationId) {
         return res.status(404).json({ error: 'Contato não encontrado' });
       }
       
-      // Verificar se o contato pertence ao usuário
-      if (contact.user_id !== userId) {
-        return res.status(403).json({ error: 'Acesso negado' });
-      }
+      // Excluir o contato (soft delete)
+      await Customer.delete(id);
       
-      // Excluir o contato
-      contactsDb.delete(contactId);
-      
-      res.status(200).json({ message: 'Contato excluído com sucesso' });
+      res.status(200).json({ 
+        message: 'Contato excluído com sucesso'
+      });
     } catch (error) {
       console.error('Erro ao excluir contato:', error);
       res.status(500).json({ error: 'Erro ao excluir contato' });
