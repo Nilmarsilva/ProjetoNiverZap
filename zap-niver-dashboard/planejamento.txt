@@ -80,7 +80,7 @@
   * Migrado de modelo em memória para PostgreSQL
   * Adaptado para usar organization_id em vez de user_id
   * Implementadas validações de segurança
-- [ ] Atualizar userController.js para usar os novos modelos Customer
+- [] Atualizar userController.js para usar os novos modelos Customer
   * Adaptar métodos para buscar contatos e aniversariantes
 - [ ] Implementar organizationController.js
   * Criar endpoints para gerenciamento de organizações
@@ -349,5 +349,49 @@ for (const [id, user] of usersDb) {
   
   // Migrar contatos
   // ...
+}
+```
+
+## 5. Escalabilidade e Alta Disponibilidade
+
+### Load Balancing
+- [ ] Implementar load balancing com Nginx
+  * Configurar distribuição de tráfego entre instâncias
+  * Implementar health checks
+  * Configurar SSL/TLS
+- [ ] Adaptar aplicação para ambiente distribuído
+  * Implementar middleware para identificar IP real do cliente
+  * Garantir que todos os estados sejam armazenados em locais compartilhados
+
+### Configuração do Nginx (Exemplo)
+```nginx
+# /etc/nginx/conf.d/niverzap.conf
+upstream niverzap_backend {
+    # Algoritmo de balanceamento
+    ip_hash;  # Mantém sessões do mesmo IP no mesmo servidor
+    
+    server backend1.niverzap.com:3000;
+    server backend2.niverzap.com:3000;
+    server backend3.niverzap.com:3000;
+    
+    # Configuração de health check
+    keepalive 64;
+}
+
+server {
+    listen 80;
+    server_name api.niverzap.com;
+    
+    location / {
+        proxy_pass http://niverzap_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
 }
 ```

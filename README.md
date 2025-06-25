@@ -1,6 +1,6 @@
 # NiverZap Dashboard
 
-O NiverZap é uma aplicação para automação de mensagens de aniversário via WhatsApp. Este repositório contém o código do dashboard administrativo e o backend da aplicação.
+O NiverZap é uma aplicação para automação de mensagens de aniversário via WhatsApp. Este repositório contém o código do dashboard administrativo e o backend da aplicação, com suporte a escalabilidade horizontal via load balancing e cache distribuído.
 
 ## Visão Geral
 
@@ -20,16 +20,43 @@ O NiverZap permite que usuários:
 - shadcn/ui para componentes de interface
 - Zustand para gerenciamento de estado
 - React Hook Form + Zod para formulários e validação
-- Axios para requisições HTTP
+- Axios para requisições
 
 ### Backend
 - Node.js com Express
-- JWT para autenticação
-- PostgreSQL para banco de dados (arquitetura multi-tenant escalável)
+- PostgreSQL para armazenamento persistente
+- Redis para cache distribuído e gerenciamento de sessões
+- Nginx para load balancing e alta disponibilidade
+- Docker Swarm para orquestração de contêineres
 - Knex.js como query builder SQL
-- Redis para cache e gerenciamento de filas
+- Winston para logging estruturado
 - Integração com Asaas para pagamentos
 - Integração com Z-API para envio de mensagens WhatsApp
+
+## Arquitetura de Escalabilidade e Alta Disponibilidade
+
+O NiverZap foi projetado para escalar horizontalmente e garantir alta disponibilidade:
+
+### Load Balancing com Nginx
+- Balanceamento de carga usando algoritmo `least_conn`
+- Múltiplas réplicas da API distribuídas pelo load balancer
+- Health checks para garantir que apenas instâncias saudáveis recebam tráfego
+- Configuração otimizada para performance (gzip, timeouts, buffers)
+- Suporte a SSL/TLS para comunicação segura
+
+### Cache Distribuído com Redis
+- Cache de dados frequentemente acessados (usuários, contatos, aniversariantes)
+- Redução de consultas ao banco de dados para melhorar performance
+- TTL (Time-To-Live) configurado para diferentes tipos de dados
+- Invalidação automática de cache quando dados são modificados
+- Reconexão automática em caso de falhas
+
+### Orquestração com Docker Swarm
+- Gerenciamento de múltiplos contêineres distribuídos
+- Escala automática de serviços conforme demanda
+- Redes overlay para comunicação segura entre serviços
+- Volumes persistentes para dados críticos
+- Deploy sem downtime (rolling updates)
 
 ## Estrutura do Projeto
 
@@ -165,6 +192,75 @@ npm run dev
 
 O frontend estará disponível em `http://localhost:5173` e o backend em `http://localhost:5000`.
 
+## Execução em Produção com Docker Swarm
+
+### Pré-requisitos
+- Docker 20.10+
+- Docker Compose v2+
+
+### Configuração
+
+1. Inicialize o Docker Swarm (se ainda não estiver inicializado)
+```bash
+docker swarm init
+```
+
+2. Configure as variáveis de ambiente para produção
+```bash
+cp .env.production.example .env.production
+```
+
+3. Crie a rede overlay para comunicação entre serviços
+```bash
+docker network create --driver overlay --attachable niverzap-network
+```
+
+### Implantação
+
+1. Implante a stack completa
+```bash
+docker stack deploy -c docker-compose.swarm.yml niverzap
+```
+
+2. Verifique o status dos serviços
+```bash
+docker service ls --filter name=niverzap
+```
+
+3. Escale o serviço da API conforme necessário
+```bash
+docker service scale niverzap_api=3
+```
+
+A aplicação estará disponível em `http://localhost:80` (ou na porta configurada para o Nginx).
+
+### Teste da Configuração
+
+Execute o script de teste para verificar se a configuração do Docker Swarm, Nginx e Redis está funcionando corretamente:
+
+```bash
+# No Windows
+powershell -ExecutionPolicy Bypass -File .\scripts\test-swarm-setup.ps1
+
+# No Linux/Mac
+bash ./scripts/test-swarm-setup.sh
+```
+
+### Monitoramento
+
+Para visualizar logs dos serviços:
+
+```bash
+# Logs da API
+docker service logs niverzap_api
+
+# Logs do Nginx
+docker service logs niverzap_nginx
+
+# Logs do Redis
+docker service logs niverzap_redis
+```
+
 ## Status de Implementação
 
 ### Progresso atual:
@@ -179,7 +275,12 @@ O frontend estará disponível em `http://localhost:5173` e o backend em `http:/
 - [x] Atualização dos controladores para usar os novos modelos PostgreSQL (25/06/2025)
 - [x] contactController.js migrado para usar o modelo Customer
 - [x] authController.js atualizado com melhorias para integração com PostgreSQL
-- [ ] Implementação do serviço de cache com Redis
+- [x] Implementação do serviço de cache com Redis (26/06/2025)
+- [x] Integração de cache Redis no authController.js para otimização de autenticação
+- [x] Integração de cache Redis no contactController.js para otimização de consultas
+- [x] Implementação de load balancing com Nginx para escalabilidade horizontal
+- [x] Configuração de Docker Swarm para orquestração de contêineres
+- [x] Scripts de teste para validação da configuração de produção
 - [ ] Documentação dos endpoints da API
 
 O projeto está migrando de um armazenamento em memória para um banco de dados PostgreSQL escalável com arquitetura multi-tenant. As migrações, modelos e seeds já foram criados e estão prontos para uso.

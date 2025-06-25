@@ -12,11 +12,19 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 
+// Importar middlewares
+const realIpMiddleware = require('./middleware/realIp');
+
+// Importar serviços
+const cacheService = require('./services/cacheService');
+const logger = require('./utils/logger');
+
 // Inicializar o app Express
 const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middleware
+app.use(realIpMiddleware); // Captura o IP real do cliente antes de qualquer outro middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -31,9 +39,15 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Servidor funcionando!' });
 });
 
+// Inicializar o serviço de cache Redis
+cacheService.connect().catch(err => {
+  logger.error(`Falha ao conectar ao Redis: ${err.message}`);
+  logger.info('Aplicação continuará funcionando sem cache');
+});
+
 // Iniciar o servidor
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  logger.info(`Servidor rodando na porta ${PORT}`);
 });
 
 module.exports = app;
