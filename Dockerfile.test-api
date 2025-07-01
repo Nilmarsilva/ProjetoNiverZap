@@ -1,0 +1,12 @@
+FROM node:16
+
+WORKDIR /app
+
+COPY package.json .
+COPY test-api.js .
+
+RUN npm install
+
+EXPOSE 5001
+
+CMD ["node", "test-api.js"]

@@ -45,9 +45,26 @@ cacheService.connect().catch(err => {
   logger.info('Aplicação continuará funcionando sem cache');
 });
 
+// Adicionar logs para diagnóstico
+console.log('Iniciando o servidor na porta ' + PORT);
+console.log('Variáveis de ambiente:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_PORT:', process.env.DB_PORT);
+console.log('DB_NAME:', process.env.DB_NAME);
+console.log('REDIS_ENABLED:', process.env.REDIS_ENABLED);
+console.log('REDIS_HOST:', process.env.REDIS_HOST);
+
 // Iniciar o servidor
-app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT} e escutando em todas as interfaces (0.0.0.0)`);
+});
+
+// Adicionar handler para erros
+server.on('error', (err) => {
+  logger.error(`Erro ao iniciar o servidor: ${err.message}`);
+  console.error('Erro ao iniciar o servidor:', err);
 });
 
 module.exports = app;

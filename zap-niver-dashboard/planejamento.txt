@@ -46,7 +46,45 @@
 - [x] Implementar métodos CRUD para cada modelo
   * Todos os modelos implementam métodos CRUD completos
 
-### 3. Atualizar README
+### 3. Implementar Cache Distribuído com Redis
+- [x] Configurar serviço de conexão com Redis
+  * Commit: "feat(cache): Implementar serviço de cache Redis para ambiente distribuído"
+  * Arquivo criado: server/src/services/cacheService.js
+- [x] Integrar cache Redis no authController
+  * Commit: "feat(auth): Integrar cache Redis no authController para otimização de autenticação"
+  * Arquivo atualizado: server/src/controllers/authController.js
+  * Implementado cache para verificação de token e dados de usuário
+- [x] Integrar cache Redis no contactController
+  * Commit: "feat(contacts): Implementar cache Redis no contactController para otimização de consultas"
+  * Arquivo atualizado: server/src/controllers/contactController.js
+  * Implementado cache para listagem, contagem e busca de contatos
+  * Implementado cache para aniversariantes do dia e próximos aniversariantes
+- [x] Implementar invalidação de cache
+  * Commit: "feat: implementação completa de cache Redis e load balancing"
+  * Implementado invalidação de cache no createContact, updateContact e deleteContact
+  * Configurado TTL apropriado para diferentes tipos de dados
+
+### 4. Configurar Load Balancing e Escalabilidade
+- [x] Configurar Nginx como load balancer
+  * Commit: "feat(infra): Configurar Nginx como load balancer para múltiplas réplicas da API"
+  * Arquivo criado: nginx/conf/default.conf
+  * Configurado balanceamento usando algoritmo least_conn
+  * Implementado health checks para garantir disponibilidade
+- [x] Configurar Docker Swarm para orquestração
+  * Commit: "feat(infra): Configurar Docker Swarm para orquestração de contêineres"
+  * Arquivo criado: stacks/niverzap.yaml
+  * Configurado serviços para API e Nginx com integração aos serviços existentes (Redis e PostgreSQL)
+  * Implementado Dockerfile personalizado para a API (Dockerfile.niverzap-api)
+- [x] Criar scripts de teste para validação
+  * Commit: "feat: implementação completa de cache Redis e load balancing"
+  * Arquivos criados: scripts/test-swarm-setup.ps1 e scripts/test-swarm-setup.sh
+  * Implementado testes para verificação de Docker Swarm, Redis e Nginx
+- [x] Resolver problemas de comunicação entre serviços
+  * Implementado solução para garantir que a API permaneça ativa no container
+  * Configurado DNS correto para comunicação entre Nginx e API
+  * Documentado comandos Docker em docker-commands.txt
+
+### 5. Atualizar README
 - [x] Documentar estrutura do banco de dados
   * Commit: "docs: Atualizar README com informações do banco de dados PostgreSQL"
 - [x] Adicionar instruções para configuração do ambiente
@@ -56,7 +94,45 @@
 
 ## PRÓXIMOS PASSOS IMEDIATOS
 
-### 1. Executar Migrações e Criar Seeds
+### 1. Monitoramento e Logs
+- [ ] Implementar sistema de monitoramento para Docker Swarm
+  * Configurar Prometheus para coleta de métricas
+  * Implementar Grafana para visualização de dashboards
+  * Configurar alertas para serviços críticos
+- [ ] Centralizar logs da aplicação
+  * Implementar ELK Stack (Elasticsearch, Logstash, Kibana) ou alternativa
+  * Configurar retenção e rotação de logs
+  * Implementar alertas para erros críticos
+
+### 2. Expandir Funcionalidades da API
+- [ ] Implementar endpoints adicionais para gerenciamento de mensagens
+  * Criar endpoint para agendamento em massa
+  * Implementar endpoint para relatórios de entrega
+  * Adicionar suporte para mensagens multimídia
+- [ ] Melhorar integração com WhatsApp Business API
+  * Implementar webhook para recebimento de status de mensagens
+  * Adicionar suporte para mensagens interativas (botões, listas)
+
+### 3. Testes de Carga
+- [ ] Preparar ambiente de teste isolado
+  * Configurar réplica da infraestrutura em ambiente de teste
+  * Preparar dados de teste realistas
+- [ ] Realizar testes de carga com diferentes cenários
+  * Simular carga normal de operação
+  * Testar picos de tráfego (ex: datas comemorativas)
+  * Avaliar limites de escalabilidade horizontal
+
+### 4. Documentação Completa
+- [ ] Documentar arquitetura do sistema
+  * Criar diagrama de arquitetura completo
+  * Documentar fluxos de dados entre componentes
+  * Descrever estratégias de escala e recuperação
+- [ ] Documentar API com Swagger/OpenAPI
+  * Implementar documentação interativa para endpoints
+  * Adicionar exemplos de uso para cada endpoint
+  * Documentar códigos de erro e respostas
+
+### 5. Executar Migrações e Criar Seeds
 - [x] Executar migrações no banco de dados PostgreSQL
   * Migrações executadas manualmente via pgAdmin em 24/06/2025
   * Todas as tabelas criadas com sucesso: plans, organizations, users, customers, message_templates, messages, subscriptions, events

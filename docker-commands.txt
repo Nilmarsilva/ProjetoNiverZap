@@ -1,0 +1,147 @@
+# COMANDOS DOCKER PARA O PROJETO NIVERZAP
+# =================================
+
+# ===== GERENCIAMENTO DE IMAGENS =====
+
+# Construir imagem da API NiverZap
+# Constrói a imagem Docker para a API usando o Dockerfile.niverzap-api
+docker build -t niverzap-api:latest -f Dockerfile.niverzap-api .
+
+# Listar imagens disponíveis
+# Mostra todas as imagens Docker disponíveis no sistema
+docker images
+
+# Filtrar imagens específicas
+# Lista apenas as imagens relacionadas ao NiverZap
+docker images | findstr niverzap-api
+
+# Remover uma imagem específica
+# Remove a imagem da API NiverZap
+docker rmi niverzap-api:latest
+
+# Remover todas as imagens não utilizadas
+# Limpa imagens que não estão sendo usadas por nenhum container
+docker image prune -a
+
+# ===== DOCKER SWARM =====
+
+# Inicializar Docker Swarm (apenas uma vez)
+# Configura o nó atual como gerenciador do Swarm
+docker swarm init
+
+# Listar nós do Swarm
+# Mostra todos os nós (máquinas) que fazem parte do Swarm
+docker node ls
+
+# Criar rede overlay para comunicação entre serviços
+# Cria uma rede que permite que containers em diferentes hosts se comuniquem
+docker network create --driver overlay --attachable network_public
+
+# Listar redes disponíveis
+# Mostra todas as redes Docker configuradas
+docker network ls
+
+# Inspecionar detalhes de uma rede
+# Mostra configurações detalhadas da rede, incluindo IPs e containers conectados
+docker network inspect network_public
+
+# ===== GERENCIAMENTO DE STACKS =====
+
+# Implantar stack do NiverZap
+# Cria ou atualiza todos os serviços definidos no arquivo niverzap.yaml
+docker stack deploy -c stacks/niverzap.yaml niverzap
+
+# Listar todas as stacks
+# Mostra todas as stacks implantadas no Swarm
+docker stack ls
+
+# Listar serviços de uma stack específica
+# Mostra todos os serviços que fazem parte da stack NiverZap
+docker stack services niverzap
+
+# Remover uma stack
+# Remove todos os serviços da stack NiverZap
+docker stack rm niverzap
+
+# ===== GERENCIAMENTO DE SERVIÇOS =====
+
+# Listar todos os serviços
+# Mostra todos os serviços em execução no Swarm
+docker service ls
+
+# Verificar detalhes de um serviço específico
+# Mostra informações detalhadas sobre o serviço da API
+docker service ps niverzap_api
+
+# Escalar um serviço (aumentar ou diminuir réplicas)
+# Altera o número de réplicas do serviço da API para 3
+docker service scale niverzap_api=3
+
+# Forçar atualização de um serviço
+# Força a recriação dos containers do serviço, útil após atualizar a imagem
+docker service update --force niverzap_api
+
+# Ver logs de um serviço
+# Mostra os logs do serviço da API
+docker service logs niverzap_api
+
+# Ver logs com limite de linhas
+# Mostra as últimas 50 linhas de logs do serviço da API
+docker service logs niverzap_api --tail 50
+
+# ===== GERENCIAMENTO DE CONTAINERS =====
+
+# Listar containers em execução
+# Mostra todos os containers ativos
+docker ps
+
+# Listar todos os containers (incluindo parados)
+# Mostra todos os containers, mesmo os que não estão em execução
+docker ps -a
+
+# Filtrar containers específicos
+# Lista apenas os containers relacionados à API do NiverZap
+docker ps | findstr niverzap_api
+
+# Executar comando dentro de um container
+# Abre um shell dentro do container para execução de comandos
+docker exec -it [CONTAINER_ID] sh
+
+# Ver logs de um container específico
+# Mostra os logs de um container específico
+docker logs [CONTAINER_ID]
+
+# Remover todos os containers parados
+# Limpa containers que não estão mais em execução
+docker container prune -f
+
+# ===== TESTES DA APLICAÇÃO =====
+
+# Testar rota de health check via curl
+# Verifica se a API está respondendo corretamente através do Nginx
+curl http://localhost/api/health
+
+# Testar múltiplas requisições para verificar balanceamento
+# Envia 5 requisições para verificar se o load balancer está funcionando
+for ($i = 1; $i -le 5; $i++) { curl http://localhost/api/health; Start-Sleep -Seconds 1 }
+
+# ===== FLUXO COMPLETO DE IMPLANTAÇÃO =====
+
+# 1. Remover stack anterior (se existir)
+docker stack rm niverzap
+
+# 2. Remover imagem anterior (se existir)
+docker rmi niverzap-api:latest
+
+# 3. Construir nova imagem da API
+docker build -t niverzap-api:latest -f Dockerfile.niverzap-api .
+
+# 4. Implantar stack completa
+docker stack deploy -c stacks/niverzap.yaml niverzap
+
+# 5. Verificar status dos serviços
+docker service ls
+docker stack services niverzap
+
+# 6. Testar a aplicação
+curl http://localhost/api/health

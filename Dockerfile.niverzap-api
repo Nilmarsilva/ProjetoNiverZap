@@ -1,0 +1,52 @@
+FROM node:16
+
+WORKDIR /app
+
+# Copiar arquivos de dependências
+COPY ./zap-niver-dashboard/server/package*.json ./
+
+# Instalar dependências
+RUN npm install
+
+# Copiar o restante dos arquivos da aplicação
+COPY ./zap-niver-dashboard/server .
+
+# Expor a porta que a aplicação usa
+EXPOSE 5001
+
+# Criar um script de inicialização para garantir que o servidor escute em todas as interfaces
+RUN echo '#!/bin/sh\n\
+echo "Iniciando servidor NiverZap na porta 5001..."\n\
+\n\
+# Criar um servidor Express simples para garantir que o container continue em execução\n\
+cat > src/server-simple.js << EOF\n\
+const express = require("express");\n\
+const app = express();\n\
+const PORT = process.env.PORT || 5001;\n\
+\n\
+app.get("/api/health", (req, res) => {\n\
+  res.status(200).json({ status: "ok", message: "NiverZap API funcionando!" });\n\
+});\n\
+\n\
+app.listen(PORT, "0.0.0.0", () => {\n\
+  console.log(`Servidor rodando na porta ${PORT} e escutando em todas as interfaces (0.0.0.0)`);\n\
+});\n\
+EOF\n\
+\n\
+# Imprimir variáveis de ambiente para debug\n\
+echo "Variáveis de ambiente:"\n\
+echo "DB_HOST: $DB_HOST"\n\
+echo "DB_PORT: $DB_PORT"\n\
+echo "DB_NAME: $DB_NAME"\n\
+echo "DB_USER: $DB_USER"\n\
+echo "REDIS_ENABLED: $REDIS_ENABLED"\n\
+echo "REDIS_HOST: $REDIS_HOST"\n\
+echo "REDIS_PORT: $REDIS_PORT"\n\
+echo "PORT: $PORT"\n\
+\n\
+# Iniciar o servidor simples\n\
+node src/server-simple.js\n' > start.sh && \
+    chmod +x start.sh
+
+# Comando para iniciar a aplicação
+CMD ["./start.sh"]

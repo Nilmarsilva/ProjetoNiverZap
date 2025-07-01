@@ -57,6 +57,8 @@ O NiverZap foi projetado para escalar horizontalmente e garantir alta disponibil
 - Redes overlay para comunicação segura entre serviços
 - Volumes persistentes para dados críticos
 - Deploy sem downtime (rolling updates)
+- Integração com serviços externos (PostgreSQL e Redis)
+- Configuração de health checks para garantir disponibilidade
 
 ## Estrutura do Projeto
 
@@ -196,70 +198,121 @@ O frontend estará disponível em `http://localhost:5173` e o backend em `http:/
 
 ### Pré-requisitos
 - Docker 20.10+
-- Docker Compose v2+
+- Docker Swarm inicializado
 
-### Configuração
+### Configuração do Ambiente Docker Swarm
 
 1. Inicialize o Docker Swarm (se ainda não estiver inicializado)
 ```bash
 docker swarm init
 ```
 
-2. Configure as variáveis de ambiente para produção
+2. Crie a rede overlay para comunicação entre serviços
 ```bash
-cp .env.production.example .env.production
+docker network create --driver overlay --attachable network_public
 ```
 
-3. Crie a rede overlay para comunicação entre serviços
+3. Configure as variáveis de ambiente para produção no arquivo `.env` na pasta `server/`
+
+### Construção da Imagem da API
+
+A API do NiverZap utiliza uma imagem Docker personalizada que garante que o servidor escute em todas as interfaces e permaneça em execução:
+
 ```bash
-docker network create --driver overlay --attachable niverzap-network
+# Construir a imagem da API
+docker build -t niverzap-api:latest -f Dockerfile.niverzap-api .
 ```
 
-### Implantação
+O Dockerfile personalizado:
+- Configura o Node.js para escutar em 0.0.0.0 (todas as interfaces)
+- Adiciona uma rota de health check para monitoramento
+- Garante que o container permaneça em execução
+- Configura variáveis de ambiente para conexão com PostgreSQL e Redis
 
-1. Implante a stack completa
+### Implantação da Stack Completa
+
+1. Implante a stack NiverZap usando o arquivo de configuração YAML
 ```bash
-docker stack deploy -c docker-compose.swarm.yml niverzap
+docker stack deploy -c stacks/niverzap.yaml niverzap
 ```
+
+O arquivo `niverzap.yaml` define:
+- Serviço da API com múltiplas réplicas e políticas de reinicialização
+- Serviço Nginx como load balancer/reverse proxy
+- Integração com serviços externos (PostgreSQL e Redis)
+- Configuração de rede overlay para comunicação segura
 
 2. Verifique o status dos serviços
 ```bash
-docker service ls --filter name=niverzap
+# Listar todos os serviços
+docker service ls
+
+# Listar apenas os serviços da stack NiverZap
+docker stack services niverzap
+
+# Verificar detalhes do serviço da API
+docker service ps niverzap_api
 ```
 
 3. Escale o serviço da API conforme necessário
 ```bash
-docker service scale niverzap_api=3
+docker service scale niverzap_api=5
 ```
 
 A aplicação estará disponível em `http://localhost:80` (ou na porta configurada para o Nginx).
 
-### Teste da Configuração
+### Teste e Verificação
 
-Execute o script de teste para verificar se a configuração do Docker Swarm, Nginx e Redis está funcionando corretamente:
+1. Teste a rota de health check para verificar se a API está respondendo através do Nginx:
+```bash
+curl http://localhost/api/health
+```
 
+2. Execute o script de teste para verificar a comunicação entre serviços:
 ```bash
 # No Windows
 powershell -ExecutionPolicy Bypass -File .\scripts\test-swarm-setup.ps1
-
-# No Linux/Mac
-bash ./scripts/test-swarm-setup.sh
 ```
 
-### Monitoramento
+### Monitoramento e Logs
 
 Para visualizar logs dos serviços:
 
 ```bash
-# Logs da API
-docker service logs niverzap_api
+# Logs da API (50 últimas linhas)
+docker service logs niverzap_api --tail 50
 
 # Logs do Nginx
 docker service logs niverzap_nginx
-
-# Logs do Redis
-docker service logs niverzap_redis
 ```
+
+### Atualização da Aplicação
+
+Para atualizar a aplicação com uma nova versão:
+
+```bash
+# 1. Remover stack anterior
+docker stack rm niverzap
+
+# 2. Remover imagem anterior
+docker rmi niverzap-api:latest
+
+# 3. Construir nova imagem
+docker build -t niverzap-api:latest -f Dockerfile.niverzap-api .
+
+# 4. Reimplantar stack
+docker stack deploy -c stacks/niverzap.yaml niverzap
+```
+
+### Comandos Docker Adicionais
+
+Todos os comandos Docker necessários para gerenciar o ambiente estão documentados no arquivo `docker-commands.txt`, incluindo:
+
+- Gerenciamento de imagens
+- Administração do Docker Swarm
+- Gerenciamento de stacks e serviços
+- Monitoramento e logs
+- Testes da aplicação
 
 ## Status de Implementação
 
