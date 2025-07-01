@@ -100,7 +100,7 @@
   * Configurado Prometheus para coleta de métricas do host e containers
   * Implementado Grafana com dashboard para visualização de métricas
   * Criado arquivo de stack `monitoring-stack.yaml` para implantação
-  * Documentado acesso e uso em `docs/acesso-monitoramento.md`
+  * Documentado acesso e uso em `docs/monitoramento.md`
   * Adaptado para compatibilidade com Docker Desktop no Windows
 - [x] Integrar frontend na stack Docker
   * Commit: "feat(docker): Integrar frontend na stack Docker para ambiente completo"
@@ -108,6 +108,13 @@
   * Utilizado Dockerfile existente do frontend para construção da imagem
   * Atualizada configuração do Nginx para rotear requisições corretamente
   * Sistema completo acessível via http://localhost
+- [x] Remover integração com Asaas e preparar para Stripe
+  * Commit: "refactor(payments): Remover integração com Asaas e preparar para Stripe"
+  * Removido arquivo `asaasService.ts` do frontend
+  * Removidas variáveis de ambiente relacionadas ao Asaas
+  * Atualizado código para usar checkout simulado temporariamente
+  * Preparado ambiente para futura integração com Stripe
+  * Documentado processo em `docs/acesso-sistema.md`
 - [ ] Centralizar logs da aplicação
   * Implementar ELK Stack (Elasticsearch, Logstash, Kibana) ou alternativa
   * Configurar retenção e rotação de logs

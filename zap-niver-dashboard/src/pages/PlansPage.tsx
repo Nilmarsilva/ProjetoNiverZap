@@ -15,7 +15,6 @@ import { Check, RefreshCw } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuthStore } from '@/stores/authStore';
-import { AsaasService } from '@/services/asaasService';
 import { userService } from '@/services/userService';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -205,90 +204,63 @@ const PlansPage = () => {
       return;
     }
     
-    setProcessingPlanId(plan.id);
+    // Iniciar o processo de checkout para o plano selecionado
+    handleCheckout(plan.id, billingCycle);
+  };
+  
+  // Função para iniciar o processo de checkout
+  const handleCheckout = async (planId: string, billingCycle: 'monthly' | 'yearly') => {
+    setIsLoading(true);
+    setProcessingPlanId(planId);
     
     try {
-      const selectedPlan = plans.find(p => p.id === plan.id);
-      if (!selectedPlan) throw new Error('Plano não encontrado');
+      // Encontrar o plano selecionado
+      const selectedPlan = plans.find(p => p.id === planId);
+      if (!selectedPlan) {
+        throw new Error('Plano não encontrado');
+      }
       
-      // Criar checkout no Asaas com dados pré-preenchidos do cliente
-      // Isso facilita o processo para o cliente e garante que tenhamos todos os dados para nota fiscal
+      // Obter dados do usuário logado
+      const userData = await userService.getCurrentUserProfile();
+      if (!userData) {
+        throw new Error('Dados do usuário não encontrados');
+      }
+      
+      // Preparar parâmetros para o checkout
       const checkoutParams = {
-        // Dados do cliente
-        name: user.name || user.email.split('@')[0] || '',
-        email: user.email || '',
-        phone: '', // Será preenchido pelo usuário no checkout
-        cpfCnpj: '', // Será preenchido pelo usuário no checkout
-        
-        // Dados da assinatura
-        billingType: 'UNDEFINED' as 'UNDEFINED' | 'BOLETO' | 'CREDIT_CARD' | 'PIX', // Permite que o cliente escolha no checkout
-        value: selectedPlan.price[billingCycle],
-        cycle: (billingCycle === 'monthly' ? 'MONTHLY' : 'YEARLY') as 'MONTHLY' | 'YEARLY' | 'WEEKLY' | 'BIWEEKLY' | 'QUARTERLY' | 'SEMIANNUALLY',
-        description: `Assinatura DataZAP - Plano ${selectedPlan.name} (${billingCycle === 'monthly' ? 'Mensal' : 'Anual'})`,
-        externalReference: `plan_${selectedPlan.id}_${billingCycle}_${Date.now()}`,
-        
-        // URLs de callback e retorno
-        callbackUrl: `${window.location.origin}/api/webhooks/asaas`, // URL para receber notificações do Asaas
-        returnUrl: `${window.location.origin}/checkout/success` // URL para redirecionar após o pagamento
+        name: userData.name,
+        email: userData.email,
+        cpfCnpj: userData.document || '00000000000', // Documento é obrigatório para pagamentos
+        phone: userData.phone || '00000000000', // Telefone é obrigatório para pagamentos
+        planId: selectedPlan.id,
+        planName: selectedPlan.name,
+        cycle: billingCycle,
+        value: billingCycle === 'monthly' ? selectedPlan.price.monthly : selectedPlan.price.yearly,
+        description: `Assinatura ${selectedPlan.name} - Ciclo ${billingCycle === 'monthly' ? 'Mensal' : 'Anual'}`,
+        returnUrl: `${window.location.origin}/checkout/success`,
+        externalReference: `user_${userData.id}_plan_${selectedPlan.id}_${billingCycle}`
       };
       
-      // Opção para forçar o uso do checkout simulado para testes
-      // Defina como true para usar o checkout simulado, false para usar o checkout real do Asaas
-      const useSimulatedCheckout = false; // <-- ALTERE AQUI PARA TESTES (true = simulado, false = real)
+      console.log('Dados do checkout:', checkoutParams);
       
-      let checkoutUrl;
+      // Usar checkout simulado para testes enquanto a integração com Stripe não está implementada
+      console.log('Usando checkout simulado para testes');
+      const checkoutUrl = `${window.location.origin}/checkout/success?simulado=true&plan=${selectedPlan.id}&cycle=${billingCycle}`;
       
-      if (useSimulatedCheckout) {
-        // Usar checkout simulado para testes rápidos
-        console.log('Usando checkout simulado para testes');
-        checkoutUrl = `${window.location.origin}/checkout/success?simulado=true&plan=${selectedPlan.id}&cycle=${billingCycle}`;
-      } else {
-        // Usar a API real do Asaas Sandbox para testes
-        try {
-          console.log('Enviando dados para criar checkout:', checkoutParams);
-          
-          const checkoutResponse = await AsaasService.createSubscriptionCheckoutWithCustomerData(checkoutParams);
-          console.log('Resposta do checkout:', checkoutResponse);
-          
-          if (checkoutResponse && checkoutResponse.url) {
-            checkoutUrl = checkoutResponse.url;
-            console.log('Redirecionando para o checkout do Asaas:', checkoutUrl);
-          } else {
-            throw new Error('URL de checkout não retornada pelo Asaas');
-          }
-        } catch (error: any) {
-          console.error('Erro ao criar checkout no Asaas:', error);
-          
-          // Mostrar o erro real para o usuário
-          const errorMessage = error.response?.data?.errors?.description || 
-                              error.response?.data?.message || 
-                              error.message || 
-                              'Erro desconhecido ao criar checkout';
-          
-          toast({
-            title: 'Erro ao criar checkout no Asaas',
-            description: errorMessage,
-            variant: 'destructive'
-          });
-          
-          // Não redirecionar automaticamente para permitir ver o erro
-          setIsLoading(false);
-          setProcessingPlanId(null);
-          return; // Interromper o fluxo para não redirecionar
-        }
-      }
+      // TODO: Implementar integração com Stripe
+      // A integração com Stripe será implementada em breve
+      // Documentação: https://stripe.com/docs/checkout/quickstart
       
-      // Redirecionar para o checkout
+      // Redirecionar para a página de checkout
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
-      } else {
-        throw new Error('URL de checkout não definida');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao processar checkout:', error);
+      
       toast({
-        title: 'Erro ao processar',
-        description: 'Não foi possível criar o checkout. Tente novamente mais tarde.',
+        title: 'Erro ao processar checkout',
+        description: error.message || 'Ocorreu um erro ao processar o checkout',
         variant: 'destructive'
       });
     } finally {

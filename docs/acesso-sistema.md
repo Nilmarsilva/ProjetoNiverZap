@@ -88,6 +88,31 @@ Para desenvolvimento local, você pode:
    - Implante a stack completa conforme descrito acima
    - Faça alterações no código e reconstrua as imagens conforme necessário
 
+## Integração de Pagamentos
+
+### Status Atual
+
+A integração com o Asaas foi removida completamente do sistema devido a problemas com o ambiente sandbox e configuração inadequada. Atualmente, o sistema está utilizando um checkout simulado para testes, enquanto aguarda a implementação da integração com o Stripe.
+
+### Fluxo de Pagamento Atual
+
+1. O usuário seleciona um plano na página de planos
+2. O sistema redireciona para uma página de checkout simulado
+3. Após o "pagamento", o usuário é redirecionado para a página de sucesso
+
+### Implementação Futura com Stripe
+
+A integração com o Stripe está planejada para substituição do Asaas. As variáveis de ambiente já estão preparadas no arquivo `.env` (comentadas) e o código foi preparado para facilitar essa implementação.
+
+Para implementar o Stripe:
+
+1. Obtenha as chaves de API do Stripe (pública e secreta)
+2. Descomente e configure as variáveis de ambiente no arquivo `.env`
+3. Implemente o serviço `stripeService.ts` seguindo a documentação oficial do Stripe
+4. Atualize o componente `PlansPage.tsx` para utilizar o Stripe Checkout
+
+Documentação de referência: https://stripe.com/docs/checkout/quickstart
+
 ## Troubleshooting
 
 ### Frontend não carrega
