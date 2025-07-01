@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  api:
+    image: niverzap-api:latest
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - DB_HOST=postgres_postgres
+      - DB_PORT=5432
+      - DB_NAME=niverzap
+      - DB_USER=postgres
+      - DB_PASSWORD=1TGY8BaXxUtwk74QLqJz65cf0REpvOVg
+      - REDIS_ENABLED=true
+      - REDIS_HOST=redis_redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=DjZpdKNiFlJahr2HXOkcg9m8Ws70Twv6
+      - JWT_SECRET=niverzap_jwt_secret_key_for_authentication_2025
+    networks:
+      - network_public
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ../nginx/conf:/etc/nginx/conf.d
+    ports:
+      - "80:80"
+    networks:
+      - network_public
+    depends_on:
+      - api
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+networks:
+  network_public:
+    external: true

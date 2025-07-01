@@ -95,10 +95,13 @@
 ## PRÓXIMOS PASSOS IMEDIATOS
 
 ### 1. Monitoramento e Logs
-- [ ] Implementar sistema de monitoramento para Docker Swarm
-  * Configurar Prometheus para coleta de métricas
-  * Implementar Grafana para visualização de dashboards
-  * Configurar alertas para serviços críticos
+- [x] Implementar sistema de monitoramento para Docker Swarm
+  * Commit: "feat(monitoring): Implementar sistema de monitoramento com Prometheus e Grafana"
+  * Configurado Prometheus para coleta de métricas do host e containers
+  * Implementado Grafana com dashboard para visualização de métricas
+  * Criado arquivo de stack `monitoring-stack.yaml` para implantação
+  * Documentado acesso e uso em `docs/acesso-monitoramento.md`
+  * Adaptado para compatibilidade com Docker Desktop no Windows
 - [ ] Centralizar logs da aplicação
   * Implementar ELK Stack (Elasticsearch, Logstash, Kibana) ou alternativa
   * Configurar retenção e rotação de logs

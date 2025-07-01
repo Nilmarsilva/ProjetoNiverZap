@@ -145,3 +145,27 @@ docker stack services niverzap
 
 # 6. Testar a aplicação
 curl http://localhost/api/health
+
+
+# ===== COMANDOS DE MONITORAMENTO =====
+
+# Implantar stack de monitoramento
+docker stack deploy -c stacks/monitoring-stack.yaml monitoring
+
+# Verificar status dos serviços de monitoramento
+docker service ls --filter name=monitoring
+
+# Verificar logs do Prometheus
+docker service logs monitoring_prometheus
+
+# Verificar logs do Grafana
+docker service logs monitoring_grafana
+
+# Reiniciar serviço Prometheus
+docker service update --force monitoring_prometheus
+
+# Reiniciar serviço Grafana
+docker service update --force monitoring_grafana
+
+# Remover stack de monitoramento
+docker stack rm monitoring

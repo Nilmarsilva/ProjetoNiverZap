@@ -1,0 +1,35 @@
+services:
+  redis:
+    image: redis:latest
+    command: [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--port",
+        "6379",
+        "--requirepass",
+        "DjZpdKNiFlJahr2HXOkcg9m8Ws70Twv6"
+      ]
+    volumes:
+      - redis_data:/data
+    networks:
+      - network_public
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+          #- node.hostname == worker1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 2048M
+
+volumes:
+  redis_data:
+    external: true
+    name: redis_data
+
+networks:
+  network_public:
+    external: true
+    name: network_public

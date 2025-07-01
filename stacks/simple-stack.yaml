@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  api:
+    image: niverzap-api:latest
+    ports:
+      - "5001:5001"
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ../nginx/conf:/etc/nginx/conf.d
+    ports:
+      - "80:80"
+    networks:
+      - network_public
+    depends_on:
+      - api
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+networks:
+  network_public:
+    external: true

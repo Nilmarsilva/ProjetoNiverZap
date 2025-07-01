@@ -1,0 +1,48 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# A scrape configuration containing endpoints to scrape
+scrape_configs:
+  # Docker Swarm service discovery
+  - job_name: 'docker'
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        filters:
+          - name: name
+            values: ['/niverzap_']
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      - source_labels: ['__meta_docker_container_label_com_docker_swarm_service_name']
+        target_label: 'service'
+
+  # Node exporter for host metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # cAdvisor foi removido por incompatibilidade com Windows
+  # Usando métricas diretas do Docker
+  - job_name: 'docker-metrics'
+    static_configs:
+      - targets: ['localhost:9323']
+    metrics_path: '/metrics'
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
