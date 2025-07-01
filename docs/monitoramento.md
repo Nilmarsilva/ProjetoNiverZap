@@ -4,20 +4,52 @@ Este documento descreve a configuração e uso do sistema de monitoramento para 
 
 ## Visão Geral
 
-O sistema de monitoramento consiste em quatro componentes principais:
+O sistema de monitoramento consiste em três componentes principais:
 
 1. **Prometheus**: Coleta e armazena métricas de todos os serviços
 2. **Grafana**: Visualização de métricas em dashboards interativos
 3. **Node Exporter**: Coleta métricas do host (CPU, memória, disco, rede)
-4. **cAdvisor**: Coleta métricas dos containers Docker
+
+Nota: O cAdvisor foi removido da configuração por incompatibilidade com o Docker Desktop no Windows.
+
+## Acesso às Interfaces
+
+### Prometheus
+
+**URL de Acesso**: http://localhost:9090
+
+O Prometheus é a ferramenta responsável pela coleta e armazenamento de métricas. Através da interface web, você pode:
+
+1. **Executar consultas PromQL**: Na aba "Graph", digite consultas para visualizar métricas específicas
+2. **Verificar targets**: Na aba "Status > Targets", verifique o status dos endpoints monitorados
+3. **Explorar métricas**: Na aba "Status > Targets", veja todas as métricas disponíveis
+
+**Consultas úteis**:
+- `rate(node_cpu_seconds_total{mode="user"}[1m])` - Uso de CPU por minuto
+- `node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100` - Porcentagem de memória disponível
+- `node_filesystem_avail_bytes{mountpoint="/"}` - Espaço em disco disponível
+
+### Grafana
+
+**URL de Acesso**: http://localhost:3000
+
+**Credenciais padrão**:
+- **Usuário**: admin
+- **Senha**: niverzap2025
+
+O Grafana é a ferramenta de visualização de métricas. Através da interface, você pode:
+
+1. **Acessar dashboards**: Na seção "Dashboards", acesse o dashboard "NiverZap Dashboard"
+2. **Personalizar visualizações**: Edite os painéis existentes ou crie novos
+3. **Configurar alertas**: Defina condições para receber notificações
 
 ## Estrutura de Arquivos
 
 ```
 monitoring/
-├── prometheus/
+│── prometheus/
 │   └── prometheus.yml      # Configuração do Prometheus
-├── grafana/
+│── grafana/
 │   └── provisioning/
 │       ├── dashboards/     # Dashboards pré-configurados
 │       └── datasources/    # Fontes de dados pré-configuradas

@@ -136,6 +136,9 @@ docker rmi niverzap-api:latest
 # 3. Construir nova imagem da API
 docker build -t niverzap-api:latest -f Dockerfile.niverzap-api .
 
+# 3.1. Construir nova imagem do Frontend
+docker build -t niverzap-frontend:latest -f ./zap-niver-dashboard/Dockerfile ./zap-niver-dashboard
+
 # 4. Implantar stack completa
 docker stack deploy -c stacks/niverzap.yaml niverzap
 
@@ -144,7 +147,14 @@ docker service ls
 docker stack services niverzap
 
 # 6. Testar a aplicação
+# Testar API
 curl http://localhost/api/health
+
+# Testar Frontend
+# Abra o navegador e acesse http://localhost
+
+# Testar login no Frontend
+# Use as credenciais configuradas no sistema
 
 
 # ===== COMANDOS DE MONITORAMENTO =====

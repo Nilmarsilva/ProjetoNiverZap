@@ -94,7 +94,7 @@
 
 ## PRÓXIMOS PASSOS IMEDIATOS
 
-### 1. Monitoramento e Logs
+### 1. Integração e Monitoramento
 - [x] Implementar sistema de monitoramento para Docker Swarm
   * Commit: "feat(monitoring): Implementar sistema de monitoramento com Prometheus e Grafana"
   * Configurado Prometheus para coleta de métricas do host e containers
@@ -102,6 +102,12 @@
   * Criado arquivo de stack `monitoring-stack.yaml` para implantação
   * Documentado acesso e uso em `docs/acesso-monitoramento.md`
   * Adaptado para compatibilidade com Docker Desktop no Windows
+- [x] Integrar frontend na stack Docker
+  * Commit: "feat(docker): Integrar frontend na stack Docker para ambiente completo"
+  * Configurado Nginx como proxy reverso para frontend e API
+  * Utilizado Dockerfile existente do frontend para construção da imagem
+  * Atualizada configuração do Nginx para rotear requisições corretamente
+  * Sistema completo acessível via http://localhost
 - [ ] Centralizar logs da aplicação
   * Implementar ELK Stack (Elasticsearch, Logstash, Kibana) ou alternativa
   * Configurar retenção e rotação de logs
