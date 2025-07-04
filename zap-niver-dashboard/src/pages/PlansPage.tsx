@@ -16,6 +16,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuthStore } from '@/stores/authStore';
 import { userService } from '@/services/userService';
+import { PaymentService } from '@/services/paymentService';
 import { Spinner } from '@/components/ui/spinner';
 
 // Tipo para os planos
@@ -190,8 +191,8 @@ const PlansPage = () => {
       return;
     }
     
-    // Verificar se o perfil do usuário está completo
-    const isComplete = await userService.isProfileComplete(user.id);
+    // Verificar se o perfil do usuário está completo usando a nova API
+    const isComplete = await userService.isProfileComplete();
     
     if (!isComplete) {
       // Perfil incompleto, redirecionar para a página de configurações
@@ -200,7 +201,7 @@ const PlansPage = () => {
         description: 'Você precisa completar seu perfil antes de assinar um plano',
         variant: 'destructive'
       });
-      navigate('/configuracoes?tab=profile&redirect=/plans');
+      navigate('/configuracoes/perfil?redirect=/plans');
       return;
     }
     
@@ -208,7 +209,7 @@ const PlansPage = () => {
     handleCheckout(plan.id, billingCycle);
   };
   
-  // Função para iniciar o processo de checkout
+  // Função para iniciar o processo de checkout com o Stripe
   const handleCheckout = async (planId: string, billingCycle: 'monthly' | 'yearly') => {
     setIsLoading(true);
     setProcessingPlanId(planId);
@@ -226,41 +227,57 @@ const PlansPage = () => {
         throw new Error('Dados do usuário não encontrados');
       }
       
-      // Preparar parâmetros para o checkout
+      // Verificar se o usuário tem um cliente Stripe associado
+      if (!userData.stripe_customer_id) {
+        // Criar cliente Stripe automaticamente
+        try {
+          await userService.createStripeCustomer();
+          toast({
+            title: "Cliente Stripe criado",
+            description: "Seu perfil foi registrado para pagamentos"
+          });
+        } catch (stripeError) {
+          console.error('Erro ao criar cliente no Stripe:', stripeError);
+          toast({
+            title: "Erro",
+            description: "Não foi possível processar seu pagamento. Tente novamente.",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          setProcessingPlanId(null);
+          return;
+        }
+      }
+      
+      // Preparar parâmetros para o checkout do Stripe
       const checkoutParams = {
-        name: userData.name,
-        email: userData.email,
-        cpfCnpj: userData.document || '00000000000', // Documento é obrigatório para pagamentos
-        phone: userData.phone || '00000000000', // Telefone é obrigatório para pagamentos
+        customerId: userData.stripe_customer_id,
         planId: selectedPlan.id,
         planName: selectedPlan.name,
         cycle: billingCycle,
-        value: billingCycle === 'monthly' ? selectedPlan.price.monthly : selectedPlan.price.yearly,
+        price: billingCycle === 'monthly' ? selectedPlan.price.monthly : selectedPlan.price.yearly,
         description: `Assinatura ${selectedPlan.name} - Ciclo ${billingCycle === 'monthly' ? 'Mensal' : 'Anual'}`,
-        returnUrl: `${window.location.origin}/checkout/success`,
-        externalReference: `user_${userData.id}_plan_${selectedPlan.id}_${billingCycle}`
+        successUrl: `${window.location.origin}/checkout/success`,
+        cancelUrl: `${window.location.origin}/plans`,
+        metadata: {
+          user_id: userData.id,
+          plan_id: selectedPlan.id,
+          billing_cycle: billingCycle
+        }
       };
       
       console.log('Dados do checkout:', checkoutParams);
       
-      // Usar checkout simulado para testes enquanto a integração com Stripe não está implementada
-      console.log('Usando checkout simulado para testes');
-      const checkoutUrl = `${window.location.origin}/checkout/success?simulado=true&plan=${selectedPlan.id}&cycle=${billingCycle}`;
+      // Usar o serviço de pagamento para criar a sessão de checkout do Stripe
+      const { url } = await PaymentService.createStripeCheckoutSession(checkoutParams);
       
-      // TODO: Implementar integração com Stripe
-      // A integração com Stripe será implementada em breve
-      // Documentação: https://stripe.com/docs/checkout/quickstart
-      
-      // Redirecionar para a página de checkout
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
-      }
-    } catch (error: any) {
+      // Redirecionar para a página de checkout do Stripe
+      window.location.href = url;
+    } catch (error) {
       console.error('Erro ao processar checkout:', error);
-      
       toast({
-        title: 'Erro ao processar checkout',
-        description: error.message || 'Ocorreu um erro ao processar o checkout',
+        title: 'Erro',
+        description: 'Não foi possível processar o checkout. Tente novamente.',
         variant: 'destructive'
       });
     } finally {

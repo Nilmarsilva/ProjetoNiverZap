@@ -179,8 +179,10 @@
   * Migrado de modelo em memória para PostgreSQL
   * Adaptado para usar organization_id em vez de user_id
   * Implementadas validações de segurança
-- [] Atualizar userController.js para usar os novos modelos Customer
-  * Adaptar métodos para buscar contatos e aniversariantes
+- [x] Atualizar userController.js para usar os novos modelos Customer (04/07/2025)
+  * Adaptados métodos para buscar contatos e aniversariantes
+  * Removida integração com Supabase
+  * Migrado completamente para PostgreSQL
 - [ ] Implementar organizationController.js
   * Criar endpoints para gerenciamento de organizações
 
@@ -413,7 +415,27 @@ CREATE INDEX idx_messages_status ON messages (status, scheduled_for);
 - Incluir organization_id em todas as tabelas principais
 - Desenhar queries para funcionar com sharding futuro
 
-## 4. Migração de Dados
+## 4. Migração de Asaas para Stripe
+
+### Implementação da API Stripe
+- [x] Criar serviço para integração com Stripe (04/07/2025)
+  * Arquivo criado: server/src/services/stripeService.js
+  * Implementados métodos para criar clientes, sessões de checkout e assinaturas
+- [x] Implementar webhook para receber notificações de pagamentos
+  * Endpoint criado: /api/webhooks/stripe
+  * Configurado para processar eventos de pagamento e atualizar status de assinaturas
+- [x] Integrar serviço Stripe com userController (04/07/2025)
+  * Criação automática de cliente Stripe ao completar perfil
+  * Armazenamento do ID do cliente Stripe no banco de dados
+- [x] Atualizar frontend para usar Stripe em vez de Asaas (04/07/2025)
+  * Implementado PaymentService para comunicação com API Stripe
+  * Atualizado fluxo de checkout para usar Stripe Checkout Sessions
+  * Removidas referências ao Asaas em todo o código
+- [x] Remover integração com Supabase Auth (04/07/2025)
+  * Migrado processo de registro para usar diretamente a API do backend
+  * Atualizado fluxo de autenticação para usar apenas PostgreSQL
+
+## 5. Migração de Dados
 
 ### Estratégia de Migração
 - [ ] Criar script para migrar dados do modelo atual (Map) para PostgreSQL

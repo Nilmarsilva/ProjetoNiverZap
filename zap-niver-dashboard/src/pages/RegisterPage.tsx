@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useToast } from '@/components/ui/use-toast'
-import { supabase } from '@/lib/store/supabase'
+import apiService from '@/services/apiService'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,61 +58,27 @@ const RegisterPage = () => {
     try {
       setIsLoading(true)
       
-      // Registrar o usuário no Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
+      // Registrar o usuário usando a API do backend
+      const response = await apiService.auth.register({
+        name,
         email,
-        password,
-        options: {
-          data: {
-            name
-          }
-        }
+        password
       })
       
-      if (error) {
-        toast({
-          title: "Erro no registro",
-          description: error.message,
-          variant: "destructive"
-        })
-        return
-      }
+      // Mostrar mensagem de sucesso
+      toast({
+        title: "Registro realizado com sucesso!",
+        description: "Você já pode fazer login com suas credenciais.",
+      })
       
-      if (data.user) {
-        // Criar o registro do usuário na tabela users
-        const { error: userError } = await supabase
-          .from('users')
-          .insert([
-            {
-              id: data.user.id,
-              email: data.user.email,
-              name: name,
-              plan_id: '1', // Plano gratuito por padrão
-              is_active: true,
-              is_admin: false,
-              created_at: new Date().toISOString()
-            }
-          ])
-        
-        if (userError) {
-          console.error('Erro ao criar perfil do usuário:', userError)
-          // Não vamos mostrar este erro para o usuário, pois o AuthInitializer
-          // vai tentar criar o perfil novamente quando o usuário fizer login
-        }
-        
-        toast({
-          title: "Registro realizado com sucesso!",
-          description: "Você já pode fazer login com suas credenciais.",
-        })
-        
-        // Redirecionar para a página de login
-        navigate('/login')
-      }
-    } catch (error) {
+      // Redirecionar para a página de login
+      navigate('/login')
+      
+    } catch (error: any) {
       console.error('Erro no registro:', error)
       toast({
         title: "Erro no registro",
-        description: "Ocorreu um erro ao tentar registrar sua conta. Tente novamente.",
+        description: error.response?.data?.error || "Ocorreu um erro ao tentar registrar sua conta. Tente novamente.",
         variant: "destructive"
       })
     } finally {

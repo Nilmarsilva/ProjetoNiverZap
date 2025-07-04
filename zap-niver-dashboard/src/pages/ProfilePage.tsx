@@ -139,15 +139,18 @@ const ProfilePage = () => {
   
   // Carregar o perfil do usuário ao montar o componente
   useEffect(() => {
+    // Redirecionar para login se não estiver autenticado
+    if (!user) {
+      navigate('/login?redirect=/configuracoes/perfil')
+      return
+    }
+    
     const loadUserProfile = async () => {
-      if (!user) {
-        navigate('/login')
-        return
-      }
-      
-      setIsLoading(true)
       try {
-        const profile = await userService.getUserProfileById(user.id)
+        setIsLoading(true)
+        
+        // Usar a nova API para buscar o perfil do usuário atual
+        const profile = await userService.getCurrentUserProfile()
         setUserProfile(profile)
         
         if (profile) {
@@ -210,8 +213,8 @@ const ProfilePage = () => {
         birthDateStr = data.birth_date.toISOString()
       }
       
-      // Atualizar o perfil do usuário usando o userService
-      await userService.updateUserProfile(user.id, {
+      // Atualizar o perfil do usuário usando o userService com a nova API
+      const updatedProfile = await userService.updateUserProfile({
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -230,6 +233,26 @@ const ProfilePage = () => {
         trading_name: data.trading_name,
         profile_image: profileImage || undefined,
       })
+      
+      // Atualizar o estado local com o perfil atualizado
+      setUserProfile(updatedProfile)
+      
+      // Verificar se o perfil está completo para criar cliente no Stripe
+      const isProfileComplete = await userService.isProfileComplete()
+      
+      // Se o perfil estiver completo e o usuário ainda não tiver um cliente Stripe, criar automaticamente
+      if (isProfileComplete && !updatedProfile.stripe_customer_id) {
+        try {
+          const stripeCustomerId = await userService.createStripeCustomer()
+          toast({
+            title: "Cliente Stripe criado",
+            description: "Seu perfil está pronto para realizar compras",
+          })
+        } catch (stripeError) {
+          console.error('Erro ao criar cliente no Stripe:', stripeError)
+          // Não interromper o fluxo se houver erro no Stripe
+        }
+      }
       
       toast({
         title: "Perfil atualizado",
@@ -308,12 +331,12 @@ const ProfilePage = () => {
                     </p>
                   </div>
 
-                  {/* Abas para alternar entre dados pessoais e dados de faturamento */}
-                  <Tabs defaultValue="personal" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="personal">Dados Pessoais</TabsTrigger>
-                      <TabsTrigger value="billing">Dados de Faturamento</TabsTrigger>
-                    </TabsList>
+                    {/* Abas para alternar entre dados pessoais e dados de faturamento */}
+                    <Tabs defaultValue="personal" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="personal">Dados Pessoais</TabsTrigger>
+                        <TabsTrigger value="billing">Dados de Faturamento</TabsTrigger>
+                      </TabsList>
                     
                     {/* Aba de dados pessoais */}
                     <TabsContent value="personal" className="space-y-4 mt-4">

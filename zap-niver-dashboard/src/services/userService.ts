@@ -1,4 +1,3 @@
-// Removida a dependência do Supabase
 import { useAuthStore } from '@/stores/authStore'
 
 export interface UserProfile {
@@ -24,20 +23,42 @@ export interface UserProfile {
   created_at: string
   is_profile_complete?: boolean
   plan_id?: string
+  stripe_customer_id?: string
 }
 
-// Chave para armazenar os perfis no localStorage
-const USER_PROFILES_KEY = 'niverzap-user-profiles';
+// URL base para as requisições à API
+const API_BASE_URL = '/api';
 
-// Função auxiliar para obter todos os perfis do localStorage
-const getAllProfilesFromStorage = (): Record<string, UserProfile> => {
-  const profilesJson = localStorage.getItem(USER_PROFILES_KEY);
-  return profilesJson ? JSON.parse(profilesJson) : {};
+// Função auxiliar para obter o token de autenticação
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('auth_token');
 };
 
-// Função auxiliar para salvar todos os perfis no localStorage
-const saveProfilesToStorage = (profiles: Record<string, UserProfile>) => {
-  localStorage.setItem(USER_PROFILES_KEY, JSON.stringify(profiles));
+// Função auxiliar para fazer requisições autenticadas à API
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const token = getAuthToken();
+  
+  if (!token) {
+    throw new Error('Usuário não autenticado');
+  }
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+    ...options.headers
+  };
+  
+  const response = await fetch(`${API_BASE_URL}${url}`, {
+    ...options,
+    headers
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+    throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+  }
+  
+  return response.json();
 };
 
 // Função para verificar se o perfil está completo
@@ -66,55 +87,35 @@ const isProfileComplete = (profile: UserProfile): boolean => {
 };
 
 /**
- * Serviço para gerenciar usuários (usando localStorage temporariamente)
+ * Serviço para gerenciar usuários (usando API)
  */
 export const userService = {
   /**
    * Busca o perfil do usuário atual
    */
   async getCurrentUserProfile(): Promise<UserProfile | null> {
-    const user = useAuthStore.getState().user;
-    
-    if (!user) return null;
-    
-    return this.getUserProfileById(user.id);
+    try {
+      const data = await fetchWithAuth('/users/profile');
+      return data;
+    } catch (error) {
+      console.error('Erro ao buscar perfil do usuário:', error);
+      return null;
+    }
   },
 
   /**
    * Busca o perfil de um usuário pelo ID
+   * Nota: Esta função agora é apenas para administradores
    */
   async getUserProfileById(userId: string): Promise<UserProfile | null> {
     try {
-      const profiles = getAllProfilesFromStorage();
-      const profile = profiles[userId];
-      
-      // Se o perfil não existir, criar um perfil básico
-      if (!profile) {
-        const user = useAuthStore.getState().user;
-        if (user && user.id === userId) {
-          const newProfile: UserProfile = {
-            id: userId,
-            name: user.name || '',
-            email: user.email || '',
-            phone: '',
-            is_active: true,
-            created_at: new Date().toISOString(),
-            is_profile_complete: false
-          };
-          
-          // Salvar o novo perfil
-          profiles[userId] = newProfile;
-          saveProfilesToStorage(profiles);
-          
-          return newProfile;
-        }
-        return null;
+      // Verificar se é administrador antes de permitir buscar perfil de outro usuário
+      if (!(await this.isCurrentUserAdmin())) {
+        throw new Error('Acesso negado: apenas administradores podem buscar perfis de outros usuários');
       }
       
-      // Verificar se o perfil está completo
-      profile.is_profile_complete = isProfileComplete(profile);
-      
-      return profile;
+      const data = await fetchWithAuth(`/users/${userId}`);
+      return data;
     } catch (error) {
       console.error(`Erro ao buscar perfil do usuário ${userId}:`, error);
       return null;
@@ -126,10 +127,8 @@ export const userService = {
    */
   async getAllUsers(): Promise<UserProfile[]> {
     try {
-      const profiles = getAllProfilesFromStorage();
-      return Object.values(profiles).sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      const data = await fetchWithAuth('/users/all');
+      return data;
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
       return [];
@@ -139,33 +138,16 @@ export const userService = {
   /**
    * Atualiza o perfil do usuário
    */
-  async updateUserProfile(userId: string, profile: Partial<Omit<UserProfile, 'id' | 'created_at'>>): Promise<UserProfile> {
+  async updateUserProfile(profile: Partial<Omit<UserProfile, 'id' | 'created_at'>>): Promise<UserProfile> {
     try {
-      const profiles = getAllProfilesFromStorage();
-      const currentProfile = profiles[userId] || {
-        id: userId,
-        name: '',
-        email: '',
-        is_active: true,
-        created_at: new Date().toISOString()
-      };
+      const data = await fetchWithAuth('/users/profile', {
+        method: 'PUT',
+        body: JSON.stringify(profile)
+      });
       
-      // Atualizar o perfil
-      const updatedProfile = {
-        ...currentProfile,
-        ...profile
-      };
-      
-      // Verificar se o perfil está completo
-      updatedProfile.is_profile_complete = isProfileComplete(updatedProfile);
-      
-      // Salvar o perfil atualizado
-      profiles[userId] = updatedProfile;
-      saveProfilesToStorage(profiles);
-      
-      return updatedProfile;
+      return data.user;
     } catch (error) {
-      console.error(`Erro ao atualizar perfil do usuário ${userId}:`, error);
+      console.error('Erro ao atualizar perfil do usuário:', error);
       throw error;
     }
   },
@@ -173,16 +155,47 @@ export const userService = {
   /**
    * Atualiza o plano do usuário
    */
-  async updateUserPlan(userId: string, planId: string): Promise<UserProfile> {
-    return this.updateUserProfile(userId, { plan_id: planId });
+  async updateUserPlan(planId: string): Promise<UserProfile> {
+    try {
+      const data = await fetchWithAuth('/users/plan', {
+        method: 'PUT',
+        body: JSON.stringify({ plan_id: planId })
+      });
+      
+      return data.user;
+    } catch (error) {
+      console.error('Erro ao atualizar plano do usuário:', error);
+      throw error;
+    }
   },
   
   /**
    * Verifica se o perfil do usuário está completo
    */
-  async isProfileComplete(userId: string): Promise<boolean> {
-    const profile = await this.getUserProfileById(userId);
-    return profile ? !!profile.is_profile_complete : false;
+  async isProfileComplete(): Promise<boolean> {
+    try {
+      const data = await fetchWithAuth('/users/profile-complete');
+      return data.is_complete;
+    } catch (error) {
+      console.error('Erro ao verificar perfil do usuário:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Cria um cliente no Stripe
+   */
+  async createStripeCustomer(): Promise<string> {
+    try {
+      const data = await fetchWithAuth('/users/create-stripe-customer', {
+        method: 'POST'
+      });
+      
+      return data.customer_id;
+    } catch (error) {
+      console.error('Erro ao criar cliente no Stripe:', error);
+      throw error;
+    }
   },
 
   /**
@@ -193,8 +206,13 @@ export const userService = {
     
     if (!user) return false;
     
-    // Verificar se o e-mail é do administrador
-    // A propriedade role pode não existir em todos os usuários, então verificamos apenas o e-mail
-    return user.email === 'admin@datazap.com';
+    try {
+      // Verificar no backend se o usuário é administrador
+      const data = await fetchWithAuth('/users/is-admin');
+      return data.is_admin;
+    } catch (error) {
+      // Fallback para verificação local
+      return user.email === 'admin@datazap.com';
+    }
   }
 }

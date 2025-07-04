@@ -12,11 +12,14 @@ router.get('/profile', userController.getCurrentUserProfile);
 // Atualizar perfil do usuário
 router.put('/profile', userController.updateUserProfile);
 
-// Criar cliente no Asaas
-router.post('/create-asaas-customer', userController.createAsaasCustomer);
+// Criar cliente no Stripe
+router.post('/create-stripe-customer', userController.createStripeCustomer);
 
 // Verificar se o perfil está completo
 router.get('/profile-complete', userController.isProfileComplete);
+
+// Verificar se o usuário é administrador
+router.get('/is-admin', authMiddleware.authenticate, userController.isAdmin);
 
 // Rotas para administradores
 router.get('/all', authMiddleware.isAdmin, userController.getAllUsers);

@@ -30,7 +30,7 @@ O NiverZap permite que usuários:
 - Docker Swarm para orquestração de contêineres
 - Knex.js como query builder SQL
 - Winston para logging estruturado
-- Integração com Asaas para pagamentos
+- Integração com Stripe para pagamentos
 - Integração com Z-API para envio de mensagens WhatsApp
 
 ## Arquitetura de Escalabilidade e Alta Disponibilidade
@@ -131,7 +131,7 @@ npm run setup
 
 1. Copie o arquivo `.env.example` para `.env` na pasta `server/`
 2. Configure as variáveis de ambiente com suas credenciais:
-   - Asaas API Key
+   - Stripe API Key e Webhook Secret
    - Z-API Token
    - Configurações do banco de dados PostgreSQL
    - Configurações do Redis
@@ -335,16 +335,19 @@ Todos os comandos Docker necessários para gerenciar o ambiente estão documenta
 - [x] Implementação de load balancing com Nginx para escalabilidade horizontal
 - [x] Configuração de Docker Swarm para orquestração de contêineres
 - [x] Scripts de teste para validação da configuração de produção
+- [x] Migração de Asaas para Stripe (04/07/2025)
+- [x] Remoção da integração com Supabase Auth (04/07/2025)
+- [x] Atualização da página de registro para usar diretamente a API (04/07/2025)
 - [ ] Documentação dos endpoints da API
 
 O projeto está migrando de um armazenamento em memória para um banco de dados PostgreSQL escalável com arquitetura multi-tenant. As migrações, modelos e seeds já foram criados e estão prontos para uso.
 
-## Integração com Asaas
+## Integração com Stripe
 
-O projeto utiliza a API do Asaas para:
+O projeto utiliza a API do Stripe para:
 
 1. Criar clientes a partir dos dados do perfil do usuário
-2. Gerar cobranças para compra de planos
+2. Gerar sessões de checkout para compra de planos
 3. Gerenciar assinaturas recorrentes
 4. Receber notificações de pagamentos via webhooks
 

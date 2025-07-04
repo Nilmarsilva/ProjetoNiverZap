@@ -11,6 +11,7 @@ dotenv.config();
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const contactRoutes = require('./routes/contactRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 // Importar middlewares
 const realIpMiddleware = require('./middleware/realIp');
@@ -33,6 +34,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Rota de teste para verificar se o servidor está funcionando
 app.get('/api/health', (req, res) => {

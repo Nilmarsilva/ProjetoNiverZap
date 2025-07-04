@@ -92,6 +92,44 @@ const asaasApi = axios.create({
 
 // Serviço de pagamento
 export const PaymentService = {
+  // Criar uma sessão de checkout do Stripe
+  async createStripeCheckoutSession(checkoutData: {
+    customerId: string;
+    planId: string;
+    planName: string;
+    cycle: 'monthly' | 'yearly';
+    price: number;
+    description: string;
+    successUrl: string;
+    cancelUrl: string;
+    metadata?: Record<string, string>;
+  }): Promise<{ url: string }> {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Usuário não autenticado');
+      }
+      
+      const response = await fetch('/api/payments/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(checkoutData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao criar sessão de checkout');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Erro ao criar sessão de checkout no Stripe:', error);
+      throw error;
+    }
+  },
   // Criar um cliente no Asaas
   async createCustomer(customer: Customer): Promise<Customer> {
     try {
