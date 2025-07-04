@@ -1,7 +1,7 @@
 
 # PLANEJAMENTO DO BANCO DE DADOS ESCALÁVEL
 
-## PROGRESSO DE IMPLEMENTAÇÃO (Atualizado em 23/06/2025)
+## PROGRESSO DE IMPLEMENTAÇÃO (Atualizado em 04/07/2025)
 
 ### 0. Configuração da Infraestrutura
 - [x] Configurar Docker Swarm na VPS
@@ -54,6 +54,13 @@
   * Commit: "feat(auth): Integrar cache Redis no authController para otimização de autenticação"
   * Arquivo atualizado: server/src/controllers/authController.js
   * Implementado cache para verificação de token e dados de usuário
+
+### 4. Melhorias na Interface do Usuário
+- [x] Unificar navegação de perfil do usuário
+  * Commit: "fix(ui): Unificar navegação do perfil e configurações do sistema"
+  * Centralização do acesso ao perfil em página dedicada (/configuracoes/perfil)
+  * Correção dos links no Header e sidebar para navegação consistente
+  * Redirecionamento automático de /configuracoes?tab=perfil para /configuracoes/perfil
 - [x] Integrar cache Redis no contactController
   * Commit: "feat(contacts): Implementar cache Redis no contactController para otimização de consultas"
   * Arquivo atualizado: server/src/controllers/contactController.js

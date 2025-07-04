@@ -325,6 +325,7 @@ Todos os comandos Docker necessários para gerenciar o ambiente estão documenta
 - [x] Configuração das variáveis de ambiente para conexão com serviços externos
 - [x] Execução das migrações no banco de dados (24/06/2025)
 - [x] Execução dos seeds para dados iniciais (24/06/2025)
+- [x] Unificação da navegação do perfil do usuário (04/07/2025)
 - [x] Atualização dos controladores para usar os novos modelos PostgreSQL (25/06/2025)
 - [x] contactController.js migrado para usar o modelo Customer
 - [x] authController.js atualizado com melhorias para integração com PostgreSQL

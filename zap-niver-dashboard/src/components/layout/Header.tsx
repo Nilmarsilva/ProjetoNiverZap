@@ -87,10 +87,10 @@ const Header = ({ title }: HeaderProps) => {
             <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <a href="/configuracoes/perfil">Perfil</a>
+              <a href="/configuracoes/perfil">Meu Perfil</a>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <a href="/configuracoes">Configurações</a>
+              <a href="/configuracoes">Configurações do Sistema</a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 

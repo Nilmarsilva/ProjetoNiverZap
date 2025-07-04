@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { 
   Tabs, 
@@ -30,12 +30,11 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useAuthStore } from '@/stores/authStore'
-import { userService, UserProfile } from '@/services/userService'
 import { useToast } from '@/hooks/use-toast'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { useAuthStore } from '@/stores/authStore'
 import { 
   Save, 
   Check, 
@@ -56,27 +55,6 @@ const ConfiguracoesPage = () => {
   const { toast } = useToast()
   const user = useAuthStore((state) => state.user)
   const [testeConexaoStatus, setTesteConexaoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  
-  // Schema de validação para o formulário de perfil
-  const profileFormSchema = z.object({
-    name: z.string().min(3, {
-      message: "O nome deve ter pelo menos 3 caracteres",
-    }),
-    email: z.string().email({
-      message: "Email inválido",
-    }),
-    phone: z.string().min(10, {
-      message: "Telefone inválido. Informe DDD + número",
-    }),
-    cpf: z.string().min(11, {
-      message: "CPF inválido",
-    }),
-    address: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    zipcode: z.string().optional(),
-    notificacoes: z.boolean().default(true),
-  })
   
   // Schema para Z-API
   const zapiFormSchema = z.object({
@@ -123,66 +101,6 @@ const ConfiguracoesPage = () => {
     }),
   })
   
-  // Configuração do formulário de perfil
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
-
-  // Carregar o perfil do usuário ao montar o componente
-  useEffect(() => {
-    const loadUserProfile = async () => {
-      if (user) {
-        setIsLoadingProfile(true)
-        try {
-          const profile = await userService.getUserProfileById(user.id)
-          setUserProfile(profile)
-        } catch (error) {
-          console.error('Erro ao carregar perfil do usuário:', error)
-          toast({
-            title: 'Erro',
-            description: 'Não foi possível carregar seu perfil',
-            variant: 'destructive'
-          })
-        } finally {
-          setIsLoadingProfile(false)
-        }
-      }
-    }
-
-    loadUserProfile()
-  }, [user])
-
-  // Inicializar o formulário com os dados do perfil quando disponíveis
-  useEffect(() => {
-    if (userProfile) {
-      profileForm.reset({
-        name: userProfile.name || '',
-        email: userProfile.email || '',
-        phone: userProfile.phone || '',
-        cpf: userProfile.document || '',
-        address: userProfile.address || '',
-        city: userProfile.city || '',
-        state: userProfile.state || '',
-        zipcode: userProfile.zipcode || '',
-        notificacoes: true
-      })
-    }
-  }, [userProfile])
-
-  const profileForm = useForm<z.infer<typeof profileFormSchema>>({
-    resolver: zodResolver(profileFormSchema),
-    defaultValues: {
-      name: user?.name || "",
-      email: user?.email || "",
-      phone: "",
-      cpf: "",
-      address: "",
-      city: "",
-      state: "",
-      zipcode: "",
-      notificacoes: true,
-    },
-  })
-  
   // Configuração dos formulários de integração
   const zapiForm = useForm<z.infer<typeof zapiFormSchema>>({
     resolver: zodResolver(zapiFormSchema),
@@ -213,45 +131,7 @@ const ConfiguracoesPage = () => {
     },
   })
   
-  // Handler para envio do formulário de perfil
-  const onSubmitProfile = async (data: z.infer<typeof profileFormSchema>) => {
-    if (!user) return;
-    
-    try {
-      // Atualizar o perfil do usuário usando o userService
-      await userService.updateUserProfile(user.id, {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        document: data.cpf,
-        document_type: 'cpf',
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        zipcode: data.zipcode,
-      });
-      
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas configurações de perfil foram atualizadas com sucesso",
-      });
-      
-      // Verificar se há um redirecionamento pendente (vindo da página de planos)
-      const urlParams = new URLSearchParams(window.location.search);
-      const redirect = urlParams.get('redirect');
-      
-      if (redirect) {
-        window.location.href = redirect;
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar perfil:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar seu perfil. Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  }
+  // Handlers para formulários de integração
   
   // Handler para envio do formulário Z-API
   const onSubmitZapi = (data: z.infer<typeof zapiFormSchema>) => {
@@ -313,193 +193,46 @@ const ConfiguracoesPage = () => {
     }
   }
 
+  // Obter parâmetros da URL para definir a aba ativa
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'zapi'; // Mudando a aba padrão para 'zapi' em vez de 'perfil'
+  
+  // Redirecionar para a página de perfil completa apenas se o parâmetro tab=perfil for explicitamente definido
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'perfil') {
+      window.location.href = '/configuracoes/perfil';
+    }
+  }, [searchParams]);
+  
+  const handleTabChange = (value: string) => {
+    if (value === 'perfil') {
+      window.location.href = '/configuracoes/perfil';
+    } else {
+      setSearchParams({ tab: value });
+    }
+  };
+
   return (
     <AppLayout title="Configurações">
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Configurações</h2>
-          <p className="text-gray-600 mt-1">
-            Gerencie suas preferências e configurações do sistema
-          </p>
+          <p className="text-gray-600 mt-1">Gerencie suas preferências e configurações do sistema</p>
         </div>
         
-        {/* Tabs de configurações */}
-        <Tabs defaultValue="perfil" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-2">
-            <TabsTrigger value="perfil">Perfil</TabsTrigger>
             <TabsTrigger value="zapi">Z-API</TabsTrigger>
             <TabsTrigger value="meta">WhatsApp Oficial</TabsTrigger>
             <TabsTrigger value="evolution">Evolution API</TabsTrigger>
             <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
+            <TabsTrigger value="perfil" onClick={() => window.location.href = '/configuracoes/perfil'}>Perfil</TabsTrigger>
           </TabsList>
           
-          {/* Tab de Perfil */}
+          {/* Tab de Perfil - Removida pois redireciona para a página completa */}
           <TabsContent value="perfil">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-niverzap-blue" />
-                  Informações do Perfil
-                </CardTitle>
-                <CardDescription>
-                  Atualize suas informações pessoais e configurações de conta
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...profileForm}>
-                  <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} id="profile-form" className="space-y-4">
-                    <FormField
-                      control={profileForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Seu nome" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="seu@email.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Telefone/WhatsApp*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(00) 00000-0000" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Número que será usado para contato e envio de mensagens
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="cpf"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>CPF*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="000.000.000-00" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Seu CPF é necessário para emissão de faturas
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Endereço</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Rua, número, complemento" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={profileForm.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cidade</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Cidade" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={profileForm.control}
-                        name="state"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Estado</FormLabel>
-                            <FormControl>
-                              <Input placeholder="UF" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="zipcode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>CEP</FormLabel>
-                          <FormControl>
-                            <Input placeholder="00000-000" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="notificacoes"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">
-                              Notificações
-                            </FormLabel>
-                            <FormDescription>
-                              Receber alertas e notificações do sistema
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </form>
-                </Form>
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" form="profile-form">
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar alterações
-                </Button>
-              </CardFooter>
-            </Card>
+            {/* O conteúdo foi removido pois o usuário será redirecionado para a página completa de perfil */}
           </TabsContent>
           
           {/* Tab de Z-API */}
