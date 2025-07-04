@@ -472,69 +472,21 @@ const ProfilePage = () => {
                         control={profileForm.control}
                         name="birth_date"
                         render={({ field }) => (
-                          <FormItem className="flex flex-col">
+                          <FormItem>
                             <FormLabel>Data de Nascimento</FormLabel>
-                            <div className="flex gap-2">
-                              <FormControl>
-                                <Input 
-                                  placeholder="DD/MM/AAAA" 
-                                  value={field.value ? format(field.value, "dd/MM/yyyy") : ""}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    // Validar formato da data (DD/MM/AAAA)
-                                    if (value === "") {
-                                      field.onChange(undefined);
-                                      return;
-                                    }
-                                    
-                                    // Tentar converter a string para data
-                                    try {
-                                      const parts = value.split("/");
-                                      if (parts.length === 3) {
-                                        const day = parseInt(parts[0], 10);
-                                        const month = parseInt(parts[1], 10) - 1; // Mês em JS é 0-indexed
-                                        const year = parseInt(parts[2], 10);
-                                        
-                                        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                                          const date = new Date(year, month, day);
-                                          // Verificar se é uma data válida
-                                          if (date.getDate() === day && 
-                                              date.getMonth() === month && 
-                                              date.getFullYear() === year &&
-                                              date <= new Date() && 
-                                              date >= new Date("1900-01-01")) {
-                                            field.onChange(date);
-                                          }
-                                        }
-                                      }
-                                    } catch (error) {
-                                      // Ignorar erros de parsing
-                                    }
-                                  }}
-                                />
-                              </FormControl>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button variant="outline" size="icon">
-                                    <CalendarIcon className="h-4 w-4" />
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="end">
-                                  <Calendar
-                                    mode="single"
-                                    selected={field.value}
-                                    onSelect={field.onChange}
-                                    disabled={(date) =>
-                                      date > new Date() || date < new Date("1900-01-01")
-                                    }
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
-                            </div>
-                            <FormDescription>
-                              Digite a data no formato DD/MM/AAAA ou use o calendário
-                            </FormDescription>
+                            <FormControl>
+                              <Input 
+                                type="date"
+                                {...field}
+                                value={field.value ? field.value.toISOString().split('T')[0] : ''}
+                                onChange={(e) => {
+                                  const dateValue = e.target.value ? new Date(e.target.value) : null;
+                                  field.onChange(dateValue);
+                                }}
+                                max={new Date().toISOString().split('T')[0]}
+                                className="w-full"
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
