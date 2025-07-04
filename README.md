@@ -21,6 +21,7 @@ O NiverZap permite que usuários:
 - Zustand para gerenciamento de estado
 - React Hook Form + Zod para formulários e validação
 - Axios para requisições
+- Integração com API ViaCEP para busca automática de endereços
 
 ### Backend
 - Node.js com Express

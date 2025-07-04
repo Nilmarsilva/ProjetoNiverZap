@@ -434,6 +434,10 @@ CREATE INDEX idx_messages_status ON messages (status, scheduled_for);
 - [x] Remover integração com Supabase Auth (04/07/2025)
   * Migrado processo de registro para usar diretamente a API do backend
   * Atualizado fluxo de autenticação para usar apenas PostgreSQL
+- [x] Melhorar experiência do usuário no formulário de perfil (04/07/2025)
+  * Implementada entrada manual de data de nascimento no formato DD/MM/AAAA
+  * Adicionada busca automática de endereço por CEP usando API ViaCEP
+  * Corrigido comportamento do formulário para evitar recarregamento da página
 
 ## 5. Migração de Dados
 

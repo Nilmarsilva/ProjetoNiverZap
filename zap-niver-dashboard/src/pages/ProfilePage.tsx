@@ -200,6 +200,73 @@ const ProfilePage = () => {
     loadUserProfile()
   }, [user, navigate, toast, profileForm])
   
+  // Função para buscar endereço pelo CEP
+  const fetchAddressByCep = async (cep: string, event?: React.MouseEvent) => {
+    // Se o evento existir, prevenir o comportamento padrão
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    
+    // Remover caracteres não numéricos
+    const cleanCep = cep.replace(/\D/g, '')
+    
+    if (cleanCep.length !== 8) return
+    
+    try {
+      setIsLoading(true)
+      // Usar a API ViaCEP para buscar o endereço
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
+      const data = await response.json()
+      
+      if (!data.erro) {
+        // Preencher os campos do formulário com os dados retornados
+        profileForm.setValue('address', data.logradouro)
+        profileForm.setValue('neighborhood', data.bairro)
+        profileForm.setValue('city', data.localidade)
+        profileForm.setValue('state', data.uf)
+        
+        // Manter a aba atual selecionada
+        const currentTab = document.querySelector('[data-state="active"][role="tab"]')?.getAttribute('data-value')
+        if (currentTab) {
+          // Forçar a permanência na aba atual
+          setTimeout(() => {
+            const tabElement = document.querySelector(`[data-value="${currentTab}"]`) as HTMLElement
+            if (tabElement) tabElement.click()
+          }, 10)
+        }
+        
+        // Focar no campo número após preencher o endereço
+        setTimeout(() => {
+          const numberField = document.querySelector('input[name="address_number"]')
+          if (numberField) {
+            (numberField as HTMLInputElement).focus()
+          }
+        }, 100)
+        
+        toast({
+          title: "CEP encontrado",
+          description: "Endereço preenchido automaticamente",
+        })
+      } else {
+        toast({
+          title: "CEP não encontrado",
+          description: "Verifique o CEP informado",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao buscar CEP:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível buscar o endereço pelo CEP",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
   // Handler para envio do formulário de perfil
   const onSubmitProfile = async (data: z.infer<typeof profileFormSchema>) => {
     if (!user) return
@@ -407,37 +474,67 @@ const ProfilePage = () => {
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
                             <FormLabel>Data de Nascimento</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                      "pl-3 text-left font-normal",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(field.value, "dd/MM/yyyy")
-                                    ) : (
-                                      <span>Selecione uma data</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  disabled={(date) =>
-                                    date > new Date() || date < new Date("1900-01-01")
-                                  }
-                                  initialFocus
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input 
+                                  placeholder="DD/MM/AAAA" 
+                                  value={field.value ? format(field.value, "dd/MM/yyyy") : ""}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    // Validar formato da data (DD/MM/AAAA)
+                                    if (value === "") {
+                                      field.onChange(undefined);
+                                      return;
+                                    }
+                                    
+                                    // Tentar converter a string para data
+                                    try {
+                                      const parts = value.split("/");
+                                      if (parts.length === 3) {
+                                        const day = parseInt(parts[0], 10);
+                                        const month = parseInt(parts[1], 10) - 1; // Mês em JS é 0-indexed
+                                        const year = parseInt(parts[2], 10);
+                                        
+                                        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                                          const date = new Date(year, month, day);
+                                          // Verificar se é uma data válida
+                                          if (date.getDate() === day && 
+                                              date.getMonth() === month && 
+                                              date.getFullYear() === year &&
+                                              date <= new Date() && 
+                                              date >= new Date("1900-01-01")) {
+                                            field.onChange(date);
+                                          }
+                                        }
+                                      }
+                                    } catch (error) {
+                                      // Ignorar erros de parsing
+                                    }
+                                  }}
                                 />
-                              </PopoverContent>
-                            </Popover>
+                              </FormControl>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" size="icon">
+                                    <CalendarIcon className="h-4 w-4" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    disabled={(date) =>
+                                      date > new Date() || date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                            <FormDescription>
+                              Digite a data no formato DD/MM/AAAA ou use o calendário
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -600,8 +697,76 @@ const ProfilePage = () => {
                               <FormItem>
                                 <FormLabel>CEP*</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="00000-000" {...field} />
+                                  <div className="flex gap-2">
+                                    <Input 
+                                      placeholder="00000-000" 
+                                      {...field}
+                                    />
+                                    <Button 
+                                      type="button" 
+                                      variant="outline"
+                                      disabled={!field.value || field.value.length < 8}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        if (field.value) {
+                                          // Remover caracteres não numéricos
+                                          const cleanCep = field.value.replace(/\D/g, '');
+                                          
+                                          if (cleanCep.length !== 8) return;
+                                          
+                                          setIsLoading(true);
+                                          // Usar a API ViaCEP para buscar o endereço
+                                          fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
+                                            .then(response => response.json())
+                                            .then(data => {
+                                              if (!data.erro) {
+                                                // Preencher os campos do formulário com os dados retornados
+                                                profileForm.setValue('address', data.logradouro);
+                                                profileForm.setValue('neighborhood', data.bairro);
+                                                profileForm.setValue('city', data.localidade);
+                                                profileForm.setValue('state', data.uf);
+                                                
+                                                // Focar no campo número após preencher o endereço
+                                                setTimeout(() => {
+                                                  const numberField = document.querySelector('input[name="address_number"]');
+                                                  if (numberField) {
+                                                    (numberField as HTMLInputElement).focus();
+                                                  }
+                                                }, 100);
+                                                
+                                                toast({
+                                                  title: "CEP encontrado",
+                                                  description: "Endereço preenchido automaticamente",
+                                                });
+                                              } else {
+                                                toast({
+                                                  title: "CEP não encontrado",
+                                                  description: "Verifique o CEP informado",
+                                                  variant: "destructive",
+                                                });
+                                              }
+                                            })
+                                            .catch(error => {
+                                              console.error('Erro ao buscar CEP:', error);
+                                              toast({
+                                                title: "Erro",
+                                                description: "Não foi possível buscar o endereço pelo CEP",
+                                                variant: "destructive",
+                                              });
+                                            })
+                                            .finally(() => {
+                                              setIsLoading(false);
+                                            });
+                                        }
+                                      }}
+                                    >
+                                      Buscar
+                                    </Button>
+                                  </div>
                                 </FormControl>
+                                <FormDescription>
+                                  Digite o CEP para preencher o endereço automaticamente
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
