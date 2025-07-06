@@ -821,12 +821,13 @@ const ContatosPage = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Datas Comemorativas</TableHead>
-                  <TableHead>Canal</TableHead>
-                  <TableHead>Classificação</TableHead>
-                  <TableHead className="w-[60px]">Ações</TableHead>
+                  <TableHead className="w-[160px]">Telefone</TableHead>
+                  <TableHead className="w-[200px]">Email</TableHead>
+                  <TableHead className="w-[500px]">Datas Comemorativas</TableHead>
+                  <TableHead>Gênero</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[100px]">Canal</TableHead>
+                  <TableHead className="w-[80px]">Classificação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

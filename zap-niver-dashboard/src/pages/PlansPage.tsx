@@ -11,7 +11,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Check, RefreshCw } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import AppLayout from '@/components/layout/AppLayout';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuthStore } from '@/stores/authStore';
@@ -42,8 +48,8 @@ const defaultPlans: Plan[] = [
     id: 'basic',
     name: 'Básico',
     price: {
-      monthly: 49.90,
-      yearly: 479.00
+      monthly: 129.99, //preço mensal precificado a R$0.13 centavos
+      yearly: 1403.99 //preço anual precificado a R$0.13 centavos (129.99 * 12) + desconto de 10%
     },
     description: 'Ideal para pequenos negócios',
     features: [
@@ -59,14 +65,14 @@ const defaultPlans: Plan[] = [
     id: 'standard',
     name: 'Padrão',
     price: {
-      monthly: 99.90,
-      yearly: 959.00
+      monthly: 239.99, //preço mensal precificado a R$0.08 centavos
+      yearly: 2591.99 //preço anual precificado a R$0.08 centavos (219.99 * 12) + desconto de 10%
     },
     description: 'Perfeito para empresas em crescimento',
     features: [
-      'Até 2.000 contatos',
-      'Até 5.000 mensagens/mês',
-      '2 números de WhatsApp',
+      'Até 1.500 contatos',
+      'Até 3.000 mensagens/mês',
+      '1 número de WhatsApp',
       'Suporte prioritário',
       'Relatórios avançados'
     ],
@@ -77,18 +83,37 @@ const defaultPlans: Plan[] = [
     id: 'premium',
     name: 'Premium',
     price: {
-      monthly: 199.90,
-      yearly: 1919.00
+      monthly: 399.99, //preço mensal precificado a R$0.08 centavos
+      yearly: 4319.99 //preço anual precificado a R$0.08 centavos (399.99 * 12) + desconto de 10%
     },
     description: 'Para empresas que precisam de mais recursos',
     features: [
-      'Contatos ilimitados',
-      'Mensagens ilimitadas',
-      '5 números de WhatsApp',
+      'Até 2.500 contatos',
+      'Até 5.000 mensagens/mês',
+      '2 números de WhatsApp',
+      'Suporte 24/7',
+      'API personalizada',
+      'Integrações avançadas'
+    ],
+    recommended: false,
+    asaasId: {}
+  },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
+    price: {
+      monthly: 9999,
+      yearly: 9999
+    },
+    description: 'Para empresas que precisam de mais recursos, plano sob consulta',
+    features: [
+      'Volume ilimitado de contatos',
+      'Volume ilimitado de mensagens',
+      'Sob consulta',
       'Suporte 24/7',
       'API personalizada',
       'Integrações avançadas',
-      'Relatórios personalizados'
+      'Treinamento da equipe'
     ],
     recommended: false,
     asaasId: {}
@@ -309,7 +334,7 @@ const PlansPage = () => {
               <TabsTrigger value="yearly">
                 Anual
                 <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800">
-                  20% OFF
+                  10% de desconto
                 </Badge>
               </TabsTrigger>
             </TabsList>
@@ -317,11 +342,11 @@ const PlansPage = () => {
         </div>
         
         {/* Cards de planos */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-[1800px] mx-auto px-4">
           {plans.map((plan) => (
             <Card 
               key={plan.id} 
-              className={`relative ${plan.recommended ? 'border-datazap-green shadow-lg' : ''}`}
+              className={`relative flex flex-col h-full ${plan.recommended ? 'border-datazap-green shadow-lg' : ''}`}
             >
               {plan.recommended && (
                 <div className="absolute -top-3 left-0 right-0 flex justify-center">
@@ -329,32 +354,34 @@ const PlansPage = () => {
                 </div>
               )}
               
-              <CardHeader>
-                <CardTitle>{plan.name}</CardTitle>
-                <CardDescription>{plan.description}</CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div className="text-center">
-                  <span className="text-3xl font-bold">
-                    R$ {plan.price[billingCycle].toFixed(2)}
-                  </span>
-                  <span className="text-muted-foreground">
-                    /{billingCycle === 'monthly' ? 'mês' : 'ano'}
-                  </span>
-                </div>
+              <div className="flex-1">
+                <CardHeader>
+                  <CardTitle>{plan.name}</CardTitle>
+                  <CardDescription>{plan.description}</CardDescription>
+                </CardHeader>
                 
-                <ul className="space-y-2">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
+                <CardContent className="space-y-4">
+                  <div className="text-center">
+                    <span className="text-3xl font-bold">
+                      R$ {plan.price[billingCycle].toFixed(2)}
+                    </span>
+                    <span className="text-muted-foreground">
+                      /{billingCycle === 'monthly' ? 'mês' : 'ano'}
+                    </span>
+                  </div>
+                  
+                  <ul className="space-y-2">
+                    {plan.features.map((feature, index) => (
+                      <li key={index} className="flex items-start">
+                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </div>
               
-              <CardFooter>
+              <CardFooter className="mt-auto pt-4">
                 <Button 
                   onClick={() => handleSelectPlan(plan)}
                   disabled={isLoading || processingPlanId === plan.id}
@@ -379,42 +406,129 @@ const PlansPage = () => {
         </div>
         
         {/* Seção de perguntas frequentes */}
-        <div className="mt-16 max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-6">Perguntas Frequentes</h2>
-          
-          <div className="space-y-4">
-            <div className="border rounded-lg p-4">
-              <h3 className="font-medium text-lg mb-2">Posso mudar de plano depois?</h3>
-              <p className="text-muted-foreground">
-                Sim, você pode fazer upgrade ou downgrade do seu plano a qualquer momento.
+        <div className="mt-16 max-w-3xl mx-auto px-4">
+          <h2 className="text-2xl font-bold text-center mb-8">Perguntas Frequentes</h2>
+
+          <Accordion type="single" collapsible className="w-full space-y-2">
+            <AccordionItem value="install" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">Preciso instalar algo no meu computador?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                Não, você não precisa instalar nada no seu computador.
+                O Data Zap é uma aplicação web que pode ser acessada 100% via navegador.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="auto-messages" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">O Data Zap envia mensagens automaticamente?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                Sim, desde que você tenha programado previamente. 
+                Você define o conteúdo, a data e a hora, e o Data Zap cuida do envio automático, com segurança e dentro das boas práticas.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="custom-messages" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">Posso personalizar as mensagens com o nome do cliente?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                Sim! Com nosso sistema de variáveis dinâmicas, você pode inserir o nome, data, e até outros campos personalizados para tornar suas mensagens mais humanas e eficazes.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="import-contacts" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">Posso importar meus contatos para o Data Zap?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                Sim! Você pode importar seus contatos para o Data Zap de duas maneiras: Via CSV e XLSX.
+                Na página de importação contamos com um exemplo de como deve ser o arquivo.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="support" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">Tenho suporte se precisar de ajuda?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                Sim. Oferecemos suporte técnico via e-mail, WhatsApp e, dependendo do plano, suporte prioritário. Nosso time está pronto para te ajudar a ter os melhores resultados com a ferramenta.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="security" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">Meus dados e dos meus clientes estão seguros?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                Sim. Levamos a segurança a sério. Seus dados são criptografados e armazenados em servidores protegidos. 
+                Compartilhamos suas informações apenas com a Stripe, que é a empresa responsável pela cobrança.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="change-plan" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">Posso mudar de plano depois?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                Sim, você pode fazer upgrade do seu plano a qualquer momento.
                 As mudanças serão aplicadas no próximo ciclo de cobrança.
-              </p>
-            </div>
-            
-            <div className="border rounded-lg p-4">
-              <h3 className="font-medium text-lg mb-2">Como funciona o período de teste?</h3>
-              <p className="text-muted-foreground">
-                Oferecemos um período de teste de 7 dias para todos os planos.
-                Você não será cobrado durante esse período e pode cancelar a qualquer momento.
-              </p>
-            </div>
-            
-            <div className="border rounded-lg p-4">
-              <h3 className="font-medium text-lg mb-2">Quais métodos de pagamento são aceitos?</h3>
-              <p className="text-muted-foreground">
-                Aceitamos cartão de crédito, boleto bancário e PIX.
-                Todos os pagamentos são processados de forma segura pelo Asaas.
-              </p>
-            </div>
-            
-            <div className="border rounded-lg p-4">
-              <h3 className="font-medium text-lg mb-2">Posso cancelar a assinatura?</h3>
-              <p className="text-muted-foreground">
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="target-audience" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">Para quem é o Datazap?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                O Datazap é para quem quer ter mais tempo para se concentrar no que importa.
+                A Datazap é feita para proprietários de empresas, profissionais de marketing e líderes de agências que buscam aproveitar ferramentas avançadas para transformar suas estratégias de comunicação.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="payment-methods" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">Quais métodos de pagamento são aceitos?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                Aceitamos cartão de crédito.
+                Todos os pagamentos são processados de forma segura pelo Stripe. (Em breve mais meios de pagamento)
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="cancel-subscription" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">Posso cancelar a assinatura?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
                 Sim, você pode cancelar sua assinatura a qualquer momento.
-                Não há taxas de cancelamento ou contratos de longo prazo.
-              </p>
-            </div>
-          </div>
+                Mas lembre-se que você não poderá mais acessar os recursos do plano. 
+                E as mensagens agendadas não serão enviadas. Exemplo: aniversários agendados, natal, etc.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="whatsapp-block" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">Meu número de WhatsApp pode ser bloqueado ao usar o Data Zap?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                Sim. O uso do WhatsApp para envios em massa (massivos ou automatizados sem controle) pode violar os Termos de Uso da plataforma do WhatsApp e resultar no bloqueio temporário ou definitivo do seu número.
+                O Data Zap não recomenda o uso indiscriminado de envios e orienta que as mensagens sejam programadas com responsabilidade, visando sempre o bom relacionamento com os seus contatos.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="how-it-works" className="border rounded-lg overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
+                <span className="font-medium text-left">O Data Zap é seguro? Como os envios são feitos?</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2 text-muted-foreground">
+                Sim, o Data Zap utiliza a Evolution API para realizar os envios de mensagens. Essa integração é feita com configurações avançadas de proxy e intervalos de tempo personalizados entre os disparos, o que reduz significativamente o risco de bloqueios e melhora a entrega das mensagens.
+                Mesmo assim, é importante reforçar que o uso responsável e consciente da ferramenta é essencial para preservar a saúde do seu número de WhatsApp.
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
       </div>
     </AppLayout>
