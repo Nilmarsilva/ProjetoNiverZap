@@ -195,22 +195,12 @@ const ConfiguracoesPage = () => {
 
   // Obter parâmetros da URL para definir a aba ativa
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'zapi'; // Mudando a aba padrão para 'zapi' em vez de 'perfil'
+  const activeTab = searchParams.get('tab') || 'zapi';
   
   // Redirecionar para a página de perfil completa apenas se o parâmetro tab=perfil for explicitamente definido
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam === 'perfil') {
-      window.location.href = '/configuracoes/perfil';
-    }
-  }, [searchParams]);
   
   const handleTabChange = (value: string) => {
-    if (value === 'perfil') {
-      window.location.href = '/configuracoes/perfil';
-    } else {
-      setSearchParams({ tab: value });
-    }
+    setSearchParams({ tab: value });
   };
 
   return (
@@ -222,18 +212,12 @@ const ConfiguracoesPage = () => {
         </div>
         
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-2">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-2">
             <TabsTrigger value="zapi">Z-API</TabsTrigger>
             <TabsTrigger value="meta">WhatsApp Oficial</TabsTrigger>
             <TabsTrigger value="evolution">Evolution API</TabsTrigger>
             <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
-            <TabsTrigger value="perfil" onClick={() => window.location.href = '/configuracoes/perfil'}>Perfil</TabsTrigger>
           </TabsList>
-          
-          {/* Tab de Perfil - Removida pois redireciona para a página completa */}
-          <TabsContent value="perfil">
-            {/* O conteúdo foi removido pois o usuário será redirecionado para a página completa de perfil */}
-          </TabsContent>
           
           {/* Tab de Z-API */}
           <TabsContent value="zapi">
@@ -603,7 +587,6 @@ const ConfiguracoesPage = () => {
               </CardFooter>
             </Card>
           </TabsContent>
-          
           {/* Tab de Notificações */}
           <TabsContent value="notificacoes">
             <Card>
