@@ -25,9 +25,18 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str
     SUPABASE_SERVICE_KEY: str
     
+    # Banco de Dados PostgreSQL
+    POSTGRES_HOST: str = "postgres"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_DB: str = "niverzap"
+    POSTGRES_USER: str = "niverzap"
+    POSTGRES_PASSWORD: str = "change_me"
+    POSTGRES_SSL: str = "disable"
+    
     # Redis
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
     
     # Celery
     CELERY_BROKER_URL: str = "redis://redis:6379/0"

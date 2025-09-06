@@ -1,13 +1,13 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date, timedelta
 
-from app.db.supabase import get_supabase_client
+from app.db.database import get_db_connection
 from app.models.message import MessageCreate, MessageUpdate, Message, MessageList, MessageStatus
 from app.integrations.factory import WhatsAppProvider
 from app.services.contact_service import ContactService
 
 class MessageService:
-    """Serviço para gerenciar mensagens no Supabase"""
+    """Serviço para gerenciar mensagens no PostgreSQL"""
     
     @staticmethod
     async def create_message(user_id: str, message_in: MessageCreate, provider: str) -> Message:

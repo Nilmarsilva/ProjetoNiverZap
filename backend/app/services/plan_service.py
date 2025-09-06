@@ -1,11 +1,11 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-from app.db.supabase import get_supabase_client
+from app.db.database import get_db_connection
 from app.models.plan import PlanCreate, PlanUpdate, Plan, PlanList, PlanType
 
 class PlanService:
-    """Serviço para gerenciar planos de assinatura no Supabase"""
+    """Serviço para gerenciar planos de assinatura no PostgreSQL"""
     
     @staticmethod
     async def create_plan(plan_in: PlanCreate) -> Plan:

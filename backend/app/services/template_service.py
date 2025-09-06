@@ -1,11 +1,11 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-from app.db.supabase import get_supabase_client
+from app.db.database import get_db_connection
 from app.models.template import TemplateCreate, TemplateUpdate, Template, TemplateList
 
 class TemplateService:
-    """Serviço para gerenciar templates de mensagem no Supabase"""
+    """Serviço para gerenciar templates de mensagem no PostgreSQL"""
     
     @staticmethod
     async def create_template(user_id: str, template_in: TemplateCreate) -> Template:

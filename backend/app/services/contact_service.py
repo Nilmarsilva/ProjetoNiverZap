@@ -1,11 +1,11 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date
 
-from app.db.supabase import get_supabase_client
+from app.db.database import get_db_connection
 from app.models.contact import ContactCreate, ContactUpdate, Contact, ContactList
 
 class ContactService:
-    """Serviço para gerenciar contatos no Supabase"""
+    """Serviço para gerenciar contatos no PostgreSQL"""
     
     @staticmethod
     async def create_contact(user_id: str, contact_in: ContactCreate) -> Contact:

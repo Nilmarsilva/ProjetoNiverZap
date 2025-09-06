@@ -6,6 +6,9 @@ from passlib.context import CryptContext
 
 from app.core.config import settings
 
+# Expose algorithm constant for other modules
+ALGORITHM = settings.ALGORITHM
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def create_access_token(

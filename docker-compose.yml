@@ -10,7 +10,7 @@ services:
     container_name: niverzap-api
     restart: always
     ports:
-      - "8000:8000"
+      - "5000:5000"
     environment:
       - API_V1_STR=/api/v1
       - SECRET_KEY=${SECRET_KEY}
