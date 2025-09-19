@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { dashboardService } from '@/services/dashboardService'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Logo } from '@/components/ui/logo'
 import { useAuthStore } from '@/stores/authStore'
@@ -25,30 +26,34 @@ export function WelcomeCard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Simular um pequeno delay para dar a impressão de carregamento
-    const timeout = setTimeout(() => {
-      // Dados mockados para o plano do usuário
-      setPlan({
-        id: 'plan-premium',
-        name: 'Premium',
-        message_limit: 1000
-      })
-      
-      // Dados mockados para mensagens enviadas
-      setMessagesSent(350)
-      
-      // Finalizar o carregamento
-      setLoading(false)
-    }, 500)
-    
-    // Limpar o timeout quando o componente for desmontado
-    return () => clearTimeout(timeout)
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        try {
+          const { stats } = await dashboardService.getStats();
+          setMessagesSent(stats.messages_sent_today);
+        } catch (error) {
+          console.error('Erro ao carregar estatísticas:', error);
+          // Usar valores padrão se o endpoint falhar
+          setMessagesSent(0);
+        }
+        
+        // Mapear plano
+        const map: Record<number,string> = {1:'Gratuito',2:'Profissional',3:'Avançado'};
+        const limits: Record<number,number> = {1:10,2:100,3:1000};
+        const pid = user?.plan_id ?? 1;
+        setPlan({ id: String(pid), name: map[pid] ?? 'Gratuito', message_limit: limits[pid] ?? 10 });
+      } finally {
+        setLoading(false);
+      }
+    };
+    if(user) loadData();
   }, [user])
 
   // Formatar o nome do usuário (usar o nome completo)
-  const formatName = (name: string) => {
-    if (!name) return 'Usuário'
-    return name
+  const formatName = (name?: string|null) => {
+    if (!name) return 'Usuário';
+    return name;
   }
 
   return (
@@ -57,7 +62,7 @@ export function WelcomeCard() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-2xl font-bold">
-              Olá, {formatName(user?.name)}!
+              Olá, {formatName((user as any)?.full_name || user?.name || user?.email)}!
             </CardTitle>
             <CardDescription>
               Bem-vindo ao seu dashboard do DataZAP

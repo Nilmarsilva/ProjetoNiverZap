@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import PlanManagement from '@/components/admin/PlanManagement'
-import { supabase } from '@/lib/store/supabase'
+import { supabase } from '@/lib/store/apiClient'
 
 // Mock do Supabase
-vi.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/store/apiClient', () => ({
   supabase: {
     from: vi.fn(() => ({
       select: vi.fn(() => ({
@@ -148,7 +148,14 @@ describe('PlanManagement', () => {
     // Verifica se a API foi chamada
     await waitFor(() => {
       expect(supabase.from).toHaveBeenCalledWith('plans')
-      expect(supabase.from().delete).toHaveBeenCalled()
+      // Corrigido para fornecer um mock de retorno da função from
+      const mockFrom = vi.fn().mockReturnValue({
+        delete: vi.fn()
+      })
+      expect(supabase.from).toHaveBeenCalled()
+      // Verificar se delete foi chamado no objeto retornado por from
+      const returnedMock = supabase.from('plans')
+      expect(returnedMock.delete).toHaveBeenCalled()
     })
   })
 })

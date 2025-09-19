@@ -5,13 +5,14 @@ export interface Contact {
   user_id: string
   name: string
   phone: string
-  birth_date: string
+  birthday: string
   notes?: string
   created_at: string
   email?: string
   address?: string
   group?: string
   custom_fields?: Record<string, any>
+  birth_date?: string // Mantido para compatibilidade com código existente
 }
 
 /**
@@ -24,6 +25,7 @@ export const contactService = {
   async getUserContacts(): Promise<Contact[]> {
     try {
       const response = await apiService.get('/contacts')
+      // A API retorna um objeto ContactList com { contacts: [...], total: number }
       return response.data.contacts || []
     } catch (error) {
       console.error('Erro ao buscar contatos:', error)
@@ -260,7 +262,8 @@ export const contactService = {
   async getContactById(id: string): Promise<Contact | null> {
     try {
       const response = await apiService.get(`/contacts/${id}`)
-      return response.data.contact || null
+      // A API retorna diretamente o objeto contact, não dentro de um objeto { contact: ... }
+      return response.data || null
     } catch (error) {
       console.error('Erro ao buscar contato:', error)
       return null
@@ -272,8 +275,11 @@ export const contactService = {
    */
   async createContact(contact: Omit<Contact, 'id' | 'created_at'>): Promise<Contact> {
     try {
+      console.log('Enviando dados para criar contato:', JSON.stringify(contact, null, 2));
       const response = await apiService.post('/contacts', contact)
-      return response.data.contact
+      console.log('Resposta ao criar contato:', response.data);
+      // A API retorna diretamente o objeto contact, não dentro de um objeto { contact: ... }
+      return response.data
     } catch (error) {
       console.error('Erro ao criar contato:', error)
       throw new Error('Falha ao criar contato')
@@ -286,7 +292,8 @@ export const contactService = {
   async updateContact(id: string, contact: Partial<Omit<Contact, 'id' | 'created_at'>>): Promise<Contact> {
     try {
       const response = await apiService.put(`/contacts/${id}`, contact)
-      return response.data.contact
+      // A API retorna diretamente o objeto contact, não dentro de um objeto { contact: ... }
+      return response.data
     } catch (error) {
       console.error('Erro ao atualizar contato:', error)
       throw new Error('Falha ao atualizar contato')

@@ -7,6 +7,7 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
     is_active: bool = True
+    is_admin: bool = False
 
 class UserCreate(UserBase):
     """Modelo para criação de usuários"""
@@ -18,6 +19,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     password: Optional[str] = None
     is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
     plan_id: Optional[int] = None
     whatsapp_provider: Optional[str] = None
     whatsapp_config: Optional[dict] = None
@@ -27,7 +29,7 @@ class UserInDB(UserBase):
     id: str
     hashed_password: str
     created_at: datetime
-    plan_id: int = 1  # Plano gratuito por padrão
+    plan_id: Optional[int] = 1
     whatsapp_provider: str = "zapi"  # Provedor padrão
     whatsapp_config: Optional[dict] = None
     
@@ -38,7 +40,7 @@ class User(UserBase):
     """Modelo de usuário para retorno na API"""
     id: str
     created_at: datetime
-    plan_id: int
+    plan_id: Optional[int] = None
     whatsapp_provider: str
     whatsapp_config: Optional[dict] = None
     

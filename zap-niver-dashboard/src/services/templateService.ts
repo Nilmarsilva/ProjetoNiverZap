@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/store/supabase'
+import { supabase } from '@/lib/store/apiClient'
 
 export interface Template {
   id: string
@@ -10,110 +10,155 @@ export interface Template {
 }
 
 /**
- * Serviço para gerenciar templates de mensagens no Supabase
+ * Serviço para gerenciar templates de mensagens
  */
 export const templateService = {
   /**
    * Busca todos os templates do usuário
    */
   async getUserTemplates(userId: string): Promise<Template[]> {
-    const { data, error } = await supabase
-      .from('templates')
-      .select('*')
-      .eq('user_id', userId)
-      .order('name', { ascending: true })
+    try {
+      // Usar o método order corretamente com o novo apiClient
+      const result = supabase
+        .from('templates')
+        .select('*')
+        .order('name', { ascending: true })
+      
+      const { data, error } = await result.execute()
 
-    if (error) {
+      if (error) {
+        console.error('Erro ao buscar templates:', error)
+        throw error
+      }
+
+      // Filtrar os resultados manualmente
+      const filteredData = data?.filter(template => template.user_id === userId) || []
+
+      return filteredData
+    } catch (error) {
       console.error('Erro ao buscar templates:', error)
-      throw error
+      return []
     }
-
-    return data || []
   },
 
   /**
    * Conta o total de templates ativos do usuário
    */
   async countActiveTemplates(userId: string): Promise<number> {
-    const { count, error } = await supabase
-      .from('templates')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('is_active', true)
+    try {
+      // Usar o novo apiClient para contar templates
+      const result = supabase
+        .from('templates')
+        .select('*')
+      
+      const { data, error } = await result.execute()
 
-    if (error) {
+      if (error) {
+        console.error('Erro ao contar templates ativos:', error)
+        throw error
+      }
+
+      // Filtrar os resultados manualmente
+      const filteredData = data?.filter(template => 
+        template.user_id === userId && 
+        template.is_active === true
+      ) || []
+
+      return filteredData.length
+    } catch (error) {
       console.error('Erro ao contar templates ativos:', error)
-      throw error
+      return 0
     }
-
-    return count || 0
   },
 
   /**
    * Busca um template específico pelo ID
    */
   async getTemplateById(id: string): Promise<Template | null> {
-    const { data, error } = await supabase
-      .from('templates')
-      .select('*')
-      .eq('id', id)
-      .single()
+    try {
+      // Usar o método select corretamente com o novo apiClient
+      const result = supabase
+        .from('templates')
+        .select('*')
+      
+      const { data, error } = await result.execute()
 
-    if (error) {
+      if (error) {
+        console.error(`Erro ao buscar template ${id}:`, error)
+        throw error
+      }
+
+      // Encontrar o template pelo ID manualmente
+      const template = data?.find(tpl => tpl.id === id) || null
+
+      return template
+    } catch (error) {
       console.error(`Erro ao buscar template ${id}:`, error)
-      throw error
+      return null
     }
-
-    return data
   },
 
   /**
    * Cria um novo template
    */
   async createTemplate(template: Omit<Template, 'id' | 'created_at'>): Promise<Template> {
-    const { data, error } = await supabase
-      .from('templates')
-      .insert([template])
-      .select()
-      .single()
+    try {
+      // Usar o método insert corretamente com o novo apiClient
+      const { data, error } = await supabase
+        .from('templates')
+        .insert(template)
 
-    if (error) {
+      if (error) {
+        console.error('Erro ao criar template:', error)
+        throw error
+      }
+
+      return data
+    } catch (error) {
       console.error('Erro ao criar template:', error)
       throw error
     }
-
-    return data
   },
 
   /**
    * Atualiza um template existente
    */
   async updateTemplate(id: string, template: Partial<Omit<Template, 'id' | 'created_at'>>): Promise<Template> {
-    const { data, error } = await supabase
-      .from('templates')
-      .update(template)
-      .eq('id', id)
-      .select()
-      .single()
+    try {
+      // Usar o método update corretamente com o novo apiClient
+      const { data, error } = await supabase
+        .from('templates')
+        .update(template)
+        .eq('id', id)
 
-    if (error) {
+      if (error) {
+        console.error(`Erro ao atualizar template ${id}:`, error)
+        throw error
+      }
+
+      return data
+    } catch (error) {
       console.error(`Erro ao atualizar template ${id}:`, error)
       throw error
     }
-
-    return data
   },
 
   /**
    * Exclui um template
    */
   async deleteTemplate(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('templates')
-      .delete()
-      .eq('id', id)
+    try {
+      // Usar o método delete corretamente com o novo apiClient
+      const { error } = await supabase
+        .from('templates')
+        .delete()
+        .eq('id', id)
 
-    if (error) {
+      if (error) {
+        console.error(`Erro ao excluir template ${id}:`, error)
+        throw error
+      }
+    } catch (error) {
       console.error(`Erro ao excluir template ${id}:`, error)
       throw error
     }

@@ -19,20 +19,25 @@ class ContactService:
         Returns:
             Contato criado
         """
-        supabase = get_supabase_client()
-        
-        contact_data = contact_in.dict()
-        contact_data["user_id"] = user_id
-        contact_data["created_at"] = datetime.utcnow().isoformat()
-        contact_data["updated_at"] = datetime.utcnow().isoformat()
-        contact_data["birthday"] = contact_data["birthday"].isoformat()
-        
-        response = supabase.table("contacts").insert(contact_data).execute()
-        
-        if not response.data:
-            raise ValueError("Erro ao criar contato")
-        
-        return Contact(**response.data[0])
+        async with await get_db_connection() as conn:
+            contact_data = contact_in.dict()
+            contact_id = await conn.fetchval(
+                """
+                INSERT INTO contacts (user_id, name, phone, birthday, is_active, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, TRUE, $5, $5)
+                RETURNING id
+                """,
+                user_id,
+                contact_data["name"],
+                contact_data["phone"],
+                contact_data["birthday"],
+                datetime.utcnow()
+            )
+            row = await conn.fetchrow("SELECT * FROM contacts WHERE id=$1", contact_id)
+            row_dict = dict(row)
+            # Garantir que o id seja uma string
+            row_dict['id'] = str(row_dict['id'])
+            return Contact(**row_dict)
     
     @staticmethod
     async def get_contact(user_id: str, contact_id: str) -> Optional[Contact]:
@@ -46,13 +51,18 @@ class ContactService:
         Returns:
             Contato ou None se não encontrado
         """
-        supabase = get_supabase_client()
-        
-        response = supabase.table("contacts").select("*").eq("id", contact_id).eq("user_id", user_id).execute()
-        if not response.data:
-            return None
-        
-        return Contact(**response.data[0])
+        async with await get_db_connection() as conn:
+            row = await conn.fetchrow(
+                "SELECT * FROM contacts WHERE id=$1 AND user_id=$2 AND is_active=TRUE",
+                contact_id,
+                user_id
+            )
+            if not row:
+                return None
+            row_dict = dict(row)
+            # Garantir que o id seja uma string
+            row_dict['id'] = str(row_dict['id'])
+            return Contact(**row_dict)
     
     @staticmethod
     async def get_contacts(user_id: str, skip: int = 0, limit: int = 100, search: Optional[str] = None) -> ContactList:
@@ -68,19 +78,25 @@ class ContactService:
         Returns:
             Lista de contatos
         """
-        supabase = get_supabase_client()
-        
-        query = supabase.table("contacts").select("*", count="exact").eq("user_id", user_id)
-        
-        if search:
-            query = query.or_(f"name.ilike.%{search}%,phone.ilike.%{search}%")
-        
-        response = query.order("name").range(skip, skip + limit - 1).execute()
-        
-        contacts = [Contact(**item) for item in response.data]
-        total = response.count or 0
-        
-        return ContactList(contacts=contacts, total=total)
+        async with await get_db_connection() as conn:
+            where_clauses = ["user_id=$1", "is_active=TRUE"]
+            params = [user_id]
+            if search:
+                where_clauses.append("(name ILIKE $2 OR phone ILIKE $2)")
+                params.append(f"%{search}%")
+            where_sql = " AND ".join(where_clauses)
+
+            query_sql = f"SELECT * FROM contacts WHERE {where_sql} ORDER BY name OFFSET {skip} LIMIT {limit}"
+            rows = await conn.fetch(query_sql, *params)
+            count_sql = f"SELECT COUNT(*) FROM contacts WHERE {where_sql}"
+            total = await conn.fetchval(count_sql, *params)
+            contacts = []
+            for r in rows:
+                row_dict = dict(r)
+                # Garantir que o id seja uma string
+                row_dict['id'] = str(row_dict['id'])
+                contacts.append(Contact(**row_dict))
+            return ContactList(contacts=contacts, total=total)
     
     @staticmethod
     async def update_contact(user_id: str, contact_id: str, contact_in: ContactUpdate) -> Contact:
@@ -98,28 +114,31 @@ class ContactService:
         Raises:
             ValueError: Se o contato não for encontrado
         """
-        supabase = get_supabase_client()
-        
-        # Verificar se o contato existe e pertence ao usuário
-        response = supabase.table("contacts").select("*").eq("id", contact_id).eq("user_id", user_id).execute()
-        if not response.data:
-            raise ValueError(f"Contato não encontrado: {contact_id}")
-        
-        # Preparar dados para atualização
-        update_data = contact_in.dict(exclude_unset=True)
-        update_data["updated_at"] = datetime.utcnow().isoformat()
-        
-        # Converter data de aniversário para string ISO se presente
-        if "birthday" in update_data and isinstance(update_data["birthday"], date):
-            update_data["birthday"] = update_data["birthday"].isoformat()
-        
-        # Atualizar contato
-        response = supabase.table("contacts").update(update_data).eq("id", contact_id).eq("user_id", user_id).execute()
-        
-        if not response.data:
-            raise ValueError("Erro ao atualizar contato")
-        
-        return Contact(**response.data[0])
+        async with await get_db_connection() as conn:
+            existing = await conn.fetchrow(
+                "SELECT id FROM contacts WHERE id=$1 AND user_id=$2 AND is_active=TRUE",
+                contact_id,
+                user_id
+            )
+            if not existing:
+                raise ValueError(f"Contato não encontrado: {contact_id}")
+            update_data = contact_in.dict(exclude_unset=True)
+            update_data["updated_at"] = datetime.utcnow()
+            set_parts = []
+            values = []
+            idx = 1
+            for k, v in update_data.items():
+                set_parts.append(f"{k}=${idx}")
+                values.append(v)
+                idx += 1
+            values.extend([contact_id, user_id])
+            set_sql = ", ".join(set_parts)
+            query = f"UPDATE contacts SET {set_sql} WHERE id=${idx} AND user_id=${idx+1} RETURNING *"
+            row = await conn.fetchrow(query, *values)
+            row_dict = dict(row)
+            # Garantir que o id seja uma string
+            row_dict['id'] = str(row_dict['id'])
+            return Contact(**row_dict)
     
     @staticmethod
     async def delete_contact(user_id: str, contact_id: str) -> bool:
@@ -136,25 +155,16 @@ class ContactService:
         Raises:
             ValueError: Se o contato não for encontrado
         """
-        supabase = get_supabase_client()
-        
-        # Verificar se o contato existe e pertence ao usuário
-        response = supabase.table("contacts").select("*").eq("id", contact_id).eq("user_id", user_id).execute()
-        if not response.data:
-            raise ValueError(f"Contato não encontrado: {contact_id}")
-        
-        # Desativar contato (soft delete)
-        update_data = {
-            "is_active": False,
-            "updated_at": datetime.utcnow().isoformat()
-        }
-        
-        response = supabase.table("contacts").update(update_data).eq("id", contact_id).eq("user_id", user_id).execute()
-        
-        if not response.data:
-            raise ValueError("Erro ao remover contato")
-        
-        return True
+        async with await get_db_connection() as conn:
+            row = await conn.fetchrow(
+                "UPDATE contacts SET is_active=FALSE, updated_at=$1 WHERE id=$2 AND user_id=$3 RETURNING id",
+                datetime.utcnow(),
+                contact_id,
+                user_id
+            )
+            if not row:
+                raise ValueError(f"Contato não encontrado: {contact_id}")
+            return True
     
     @staticmethod
     async def get_birthdays_today(date_today: date) -> List[Dict[str, Any]]:
@@ -167,29 +177,22 @@ class ContactService:
         Returns:
             Lista de contatos com aniversário hoje
         """
-        supabase = get_supabase_client()
-        
-        # Extrair mês e dia da data de hoje
-        month = date_today.month
-        day = date_today.day
-        
-        # Buscar contatos com aniversário hoje
-        # Nota: Esta é uma consulta específica para PostgreSQL que extrai mês e dia da data
-        query = f"""
-        SELECT c.*, u.email as user_email, u.whatsapp_provider, u.plan_id, p.message_limit, p.allowed_providers
-        FROM contacts c
-        JOIN users u ON c.user_id = u.id
-        JOIN plans p ON u.plan_id = p.id
-        WHERE 
-            EXTRACT(MONTH FROM c.birthday::date) = {month} AND 
-            EXTRACT(DAY FROM c.birthday::date) = {day} AND
-            c.is_active = true AND
-            u.is_active = true
-        """
-        
-        response = supabase.rpc("run_sql", {"query": query}).execute()
-        
-        if not response.data:
-            return []
-        
-        return response.data
+        async with await get_db_connection() as conn:
+            month = date_today.month
+            day = date_today.day
+            rows = await conn.fetch(
+                """
+                SELECT c.*, u.email as user_email, u.whatsapp_provider, u.plan_id, p.message_limit, p.allowed_providers
+                FROM contacts c
+                JOIN users u ON c.user_id = u.id
+                JOIN plans p ON u.plan_id = p.id
+                WHERE 
+                    EXTRACT(MONTH FROM c.birthday) = $1 AND 
+                    EXTRACT(DAY FROM c.birthday) = $2 AND
+                    c.is_active = TRUE AND
+                    u.is_active = TRUE
+                """,
+                month,
+                day
+            )
+            return [dict(r) for r in rows]

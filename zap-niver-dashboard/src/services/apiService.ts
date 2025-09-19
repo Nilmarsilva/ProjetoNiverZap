@@ -26,6 +26,9 @@ class ApiService {
         
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('Token de autenticação adicionado:', token.substring(0, 10) + '...');
+        } else {
+          console.warn('Sem token de autenticação para:', config.url);
         }
         
         return config;
@@ -37,12 +40,26 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        // Tratar erros de autenticação (401)
-        if (error.response && error.response.status === 401) {
-          // Se não for uma rota de autenticação, fazer logout
-          if (!error.config.url.includes('/auth/')) {
-            useAuthStore.getState().logout();
+        // Detalhes do erro para debug
+        if (error.response) {
+          console.error('Erro de resposta:', {
+            status: error.response.status,
+            url: error.config.url,
+            data: error.response.data,
+            headers: error.response.headers
+          });
+          
+          // Tratar erros de autenticação (401)
+          if (error.response.status === 401) {
+            // Se não for uma rota de autenticação, fazer logout
+            if (!error.config.url.includes('/auth/')) {
+              useAuthStore.getState().logout();
+            }
           }
+        } else if (error.request) {
+          console.error('Erro de requisição (sem resposta):', error.request);
+        } else {
+          console.error('Erro ao configurar requisição:', error.message);
         }
         
         return Promise.reject(error);
@@ -82,7 +99,16 @@ class ApiService {
    * Fazer uma requisição DELETE
    */
   async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.api.delete<T>(url, config);
+    const mergedConfig = {
+      ...config,
+      headers: {
+        ...config?.headers,
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    };
+    return this.api.delete<T>(url, mergedConfig);
   }
   
   /**

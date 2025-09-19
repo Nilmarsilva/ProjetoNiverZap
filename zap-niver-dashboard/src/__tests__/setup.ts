@@ -6,8 +6,8 @@ import { TextEncoder, TextDecoder } from 'util'
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
 
-// Mock para o Supabase
-vi.mock('@/lib/supabase', () => ({
+// Mock para o apiClient
+vi.mock('@/lib/store/apiClient', () => ({
   supabase: {
     from: vi.fn(() => ({
       select: vi.fn(() => ({

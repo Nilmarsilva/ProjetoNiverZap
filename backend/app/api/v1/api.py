@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import users, auth, contacts, templates, messages, plans
+from app.api.v1.endpoints import users, auth, contacts, templates, messages, plans, dashboard
 
 api_router = APIRouter()
 
@@ -21,3 +21,6 @@ api_router.include_router(messages.router, prefix="/messages", tags=["messages"]
 
 # Rotas de planos
 api_router.include_router(plans.router, prefix="/plans", tags=["plans"])
+
+# Rotas de dashboard
+api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])

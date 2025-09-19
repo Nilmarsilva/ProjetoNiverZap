@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/store/utils'
 import { RefreshCw, Eye, UserCog } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import { supabase } from '@/lib/store/supabase'
+import { supabase } from '@/lib/store/apiClient'
 
 // Definição do tipo de usuário
 interface User {
@@ -49,13 +49,13 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      // Usar o método order corretamente com o novo apiClient
+      const result = supabase
         .from('users')
-        .select(`
-          *,
-          plan:plans(id, name, type)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
+      
+      const { data, error } = await result.execute()
       
       if (error) throw error
       

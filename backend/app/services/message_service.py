@@ -22,30 +22,28 @@ class MessageService:
         Returns:
             Mensagem criada
         """
-        supabase = get_supabase_client()
-        
-        # Verificar se o contato existe e pertence ao usuário
+        # Verificar contato existente
         contact = await ContactService.get_contact(user_id, message_in.contact_id)
         if not contact:
             raise ValueError(f"Contato não encontrado: {message_in.contact_id}")
-        
-        message_data = message_in.dict()
-        message_data["user_id"] = user_id
-        message_data["created_at"] = datetime.utcnow().isoformat()
-        message_data["updated_at"] = datetime.utcnow().isoformat()
-        message_data["status"] = MessageStatus.SCHEDULED
-        message_data["provider"] = provider
-        
-        # Converter datetime para string ISO
-        if isinstance(message_data["scheduled_date"], datetime):
-            message_data["scheduled_date"] = message_data["scheduled_date"].isoformat()
-        
-        response = supabase.table("messages").insert(message_data).execute()
-        
-        if not response.data:
-            raise ValueError("Erro ao criar mensagem")
-        
-        return Message(**response.data[0])
+        async with await get_db_connection() as conn:
+            data = message_in.dict()
+            msg_id = await conn.fetchval(
+                """
+                INSERT INTO messages (user_id, contact_id, template_id, scheduled_date, status, provider, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
+                RETURNING id
+                """,
+                user_id,
+                data["contact_id"],
+                data.get("template_id"),
+                data["scheduled_date"],
+                MessageStatus.SCHEDULED,
+                provider,
+                datetime.utcnow()
+            )
+            row = await conn.fetchrow("SELECT * FROM messages WHERE id=$1", msg_id)
+            return Message(**dict(row))
     
     @staticmethod
     async def get_message(user_id: str, message_id: str) -> Optional[Message]:
@@ -59,13 +57,15 @@ class MessageService:
         Returns:
             Mensagem ou None se não encontrada
         """
-        supabase = get_supabase_client()
-        
-        response = supabase.table("messages").select("*").eq("id", message_id).eq("user_id", user_id).execute()
-        if not response.data:
-            return None
-        
-        return Message(**response.data[0])
+        async with await get_db_connection() as conn:
+            row = await conn.fetchrow(
+                "SELECT * FROM messages WHERE id=$1 AND user_id=$2",
+                message_id,
+                user_id
+            )
+            if not row:
+                return None
+            return Message(**dict(row))
     
     @staticmethod
     async def get_messages(
@@ -92,9 +92,9 @@ class MessageService:
         Returns:
             Lista de mensagens
         """
-        supabase = get_supabase_client()
-        
-        query = supabase.table("messages").select("*", count="exact").eq("user_id", user_id)
+        async with await get_db_connection() as conn:
+            where = ["user_id=$1"]
+            params = [user_id]
         
         if status:
             query = query.eq("status", status)
@@ -110,12 +110,25 @@ class MessageService:
             end_date_str = end_date.isoformat()
             query = query.lte("scheduled_date", end_date_str)
         
-        response = query.order("scheduled_date", desc=False).range(skip, skip + limit - 1).execute()
-        
-        messages = [Message(**item) for item in response.data]
-        total = response.count or 0
-        
-        return MessageList(messages=messages, total=total)
+            if status:
+                where.append(f"status = $${len(params)+1}")
+                params.append(status)
+            if contact_id:
+                where.append(f"contact_id = $${len(params)+1}")
+                params.append(contact_id)
+            if start_date:
+                where.append(f"scheduled_date >= $${len(params)+1}")
+                params.append(start_date)
+            if end_date:
+                where.append(f"scheduled_date <= $${len(params)+1}")
+                params.append(end_date)
+            where_sql = " AND ".join(where)
+            query_sql = f"SELECT * FROM messages WHERE {where_sql} ORDER BY scheduled_date OFFSET {skip} LIMIT {limit}"
+            rows = await conn.fetch(query_sql, *params)
+            count_sql = f"SELECT COUNT(*) FROM messages WHERE {where_sql}"
+            total = await conn.fetchval(count_sql, *params)
+            messages = [Message(**dict(r)) for r in rows]
+            return MessageList(messages=messages, total=total)
     
     @staticmethod
     async def update_message_status(message_id: str, status: MessageStatus, error_message: Optional[str] = None, delivery_data: Optional[Dict[str, Any]] = None) -> Message:
@@ -134,18 +147,15 @@ class MessageService:
         Raises:
             ValueError: Se a mensagem não for encontrada
         """
-        supabase = get_supabase_client()
-        
-        # Verificar se a mensagem existe
-        response = supabase.table("messages").select("*").eq("id", message_id).execute()
-        if not response.data:
-            raise ValueError(f"Mensagem não encontrada: {message_id}")
-        
-        # Preparar dados para atualização
-        update_data = {
-            "status": status,
-            "updated_at": datetime.utcnow().isoformat()
-        }
+        async with await get_db_connection() as conn:
+            row = await conn.fetchrow("SELECT id FROM messages WHERE id=$1", message_id)
+            if not row:
+                raise ValueError(f"Mensagem não encontrada: {message_id}")
+            update_data = {"status": status, "updated_at": datetime.utcnow()}
+            if error_message:
+                update_data["error_message"] = error_message
+            if delivery_data:
+                update_data["delivery_data"] = delivery_data
         
         if error_message:
             update_data["error_message"] = error_message
@@ -153,13 +163,17 @@ class MessageService:
         if delivery_data:
             update_data["delivery_data"] = delivery_data
         
-        # Atualizar mensagem
-        response = supabase.table("messages").update(update_data).eq("id", message_id).execute()
-        
-        if not response.data:
-            raise ValueError("Erro ao atualizar status da mensagem")
-        
-        return Message(**response.data[0])
+            set_parts = []
+            values = []
+            idx=1
+            for k,v in update_data.items():
+                set_parts.append(f"{k}=${idx}")
+                values.append(v)
+                idx+=1
+            values.append(message_id)
+            sql = f"UPDATE messages SET {', '.join(set_parts)} WHERE id=${idx} RETURNING *"
+            row = await conn.fetchrow(sql,*values)
+            return Message(**dict(row))
     
     @staticmethod
     async def cancel_message(user_id: str, message_id: str) -> bool:
@@ -176,31 +190,19 @@ class MessageService:
         Raises:
             ValueError: Se a mensagem não for encontrada ou já tiver sido enviada
         """
-        supabase = get_supabase_client()
-        
-        # Verificar se a mensagem existe e pertence ao usuário
-        response = supabase.table("messages").select("*").eq("id", message_id).eq("user_id", user_id).execute()
-        if not response.data:
-            raise ValueError(f"Mensagem não encontrada: {message_id}")
-        
-        message = Message(**response.data[0])
-        
-        # Verificar se a mensagem já foi enviada
-        if message.status not in [MessageStatus.SCHEDULED, MessageStatus.PROCESSING]:
-            raise ValueError("Não é possível cancelar uma mensagem que já foi enviada")
-        
-        # Atualizar status para cancelado
-        update_data = {
-            "status": "canceled",
-            "updated_at": datetime.utcnow().isoformat()
-        }
-        
-        response = supabase.table("messages").update(update_data).eq("id", message_id).eq("user_id", user_id).execute()
-        
-        if not response.data:
-            raise ValueError("Erro ao cancelar mensagem")
-        
-        return True
+        async with await get_db_connection() as conn:
+            row = await conn.fetchrow("SELECT status FROM messages WHERE id=$1 AND user_id=$2", message_id, user_id)
+            if not row:
+                raise ValueError(f"Mensagem não encontrada: {message_id}")
+            if row["status"] not in [MessageStatus.SCHEDULED, MessageStatus.PROCESSING]:
+                raise ValueError("Não é possível cancelar uma mensagem que já foi enviada")
+            res = await conn.execute(
+                "UPDATE messages SET status='canceled', updated_at=$1 WHERE id=$2 AND user_id=$3",
+                datetime.utcnow(),
+                message_id,
+                user_id
+            )
+            return res[-1] != '0'
     
     @staticmethod
     async def get_pending_messages(limit: int = 10) -> List[Dict[str, Any]]:
@@ -213,31 +215,24 @@ class MessageService:
         Returns:
             Lista de mensagens pendentes
         """
-        supabase = get_supabase_client()
-        
-        now = datetime.utcnow().isoformat()
-        
-        # Buscar mensagens agendadas para envio
-        query = f"""
-        SELECT m.*, c.phone, c.name, u.whatsapp_provider, u.whatsapp_config
-        FROM messages m
-        JOIN contacts c ON m.contact_id = c.id
-        JOIN users u ON m.user_id = u.id
-        WHERE 
-            m.status = 'scheduled' AND 
-            m.scheduled_date <= '{now}' AND
-            c.is_active = true AND
-            u.is_active = true
-        ORDER BY m.scheduled_date
-        LIMIT {limit}
-        """
-        
-        response = supabase.rpc("run_sql", {"query": query}).execute()
-        
-        if not response.data:
-            return []
-        
-        return response.data
+        async with await get_db_connection() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT m.*, c.phone, c.name, u.whatsapp_provider, u.whatsapp_config
+                FROM messages m
+                JOIN contacts c ON m.contact_id = c.id
+                JOIN users u ON m.user_id = u.id
+                WHERE 
+                    m.status = 'scheduled' AND 
+                    m.scheduled_date <= NOW() AND
+                    c.is_active = TRUE AND
+                    u.is_active = TRUE
+                ORDER BY m.scheduled_date
+                LIMIT $1
+                """,
+                limit
+            )
+            return [dict(r) for r in rows]
     
     @staticmethod
     async def get_messages_count_today(user_id: str) -> int:
@@ -250,16 +245,17 @@ class MessageService:
         Returns:
             Número de mensagens enviadas hoje
         """
-        supabase = get_supabase_client()
-        
-        today_start = datetime.combine(date.today(), datetime.min.time()).isoformat()
-        today_end = datetime.combine(date.today(), datetime.max.time()).isoformat()
-        
-        response = supabase.table("messages").select("id", count="exact") \
-            .eq("user_id", user_id) \
-            .in_("status", ["sent", "delivered", "read"]) \
-            .gte("updated_at", today_start) \
-            .lte("updated_at", today_end) \
-            .execute()
-        
-        return response.count or 0
+        async with await get_db_connection() as conn:
+            today_start = datetime.combine(date.today(), datetime.min.time())
+            today_end = datetime.combine(date.today(), datetime.max.time())
+            count = await conn.fetchval(
+                """
+                SELECT COUNT(*) FROM messages
+                WHERE user_id=$1 AND status IN ('sent','delivered','read')
+                AND updated_at BETWEEN $2 AND $3
+                """,
+                user_id,
+                today_start,
+                today_end
+            )
+            return count or 0

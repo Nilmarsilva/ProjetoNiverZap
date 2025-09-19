@@ -5,7 +5,8 @@ import apiService from '@/services/apiService'
 interface User {
   id: string
   email: string
-  name: string
+  name?: string
+  full_name?: string
   plan?: {
     id: string
     name: string
@@ -13,7 +14,6 @@ interface User {
     max_templates: number
     price: number
   }
-  isAdmin?: boolean
   plan_id?: string
   is_active?: boolean
   is_admin?: boolean
@@ -82,34 +82,26 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        try {
-          // Chamar o endpoint de logout no backend
-          await apiService.post('/auth/logout');
-        } catch (error) {
-          console.error('Erro ao fazer logout:', error)
-          // Continuar mesmo se houver erro
-        } finally {
-          // Limpar o estado local
-          set({ user: null, token: null, isAuthenticated: false })
-          
-          // Limpar dados de sessão no localStorage
-          localStorage.removeItem('niverzap-auth-storage')
-          
-          // Limpar outros possíveis dados de sessão
-          sessionStorage.clear()
-          
-          // Forçar limpeza de cookies relacionados à autenticação
-          document.cookie.split(';').forEach(cookie => {
-            const [name] = cookie.trim().split('=');
-            if (name.includes('auth') || name.includes('supabase')) {
-              document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-            }
-          });
-        }
-      },
+        // Limpar o estado local
+        set({ user: null, token: null, isAuthenticated: false })
+        
+        // Limpar dados de sessão no localStorage
+        localStorage.removeItem('niverzap-auth-storage')
+        
+        // Limpar outros possíveis dados de sessão
+        sessionStorage.clear()
+        
+        // Forçar limpeza de cookies relacionados à autenticação
+        document.cookie.split(';').forEach(cookie => {
+          const [name] = cookie.trim().split('=');
+          if (name.includes('auth') || name.includes('supabase')) {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          }
+        });
+      }
     }),
     {
-      name: 'datazap-auth-storage', // Atualizado para o novo nome do projeto
+      name: 'niverzap-auth-storage', // Nome do armazenamento local
       partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
     }
   )

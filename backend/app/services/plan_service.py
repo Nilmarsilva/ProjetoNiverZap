@@ -18,18 +18,24 @@ class PlanService:
         Returns:
             Plano criado
         """
-        supabase = get_supabase_client()
-        
-        plan_data = plan_in.dict()
-        plan_data["created_at"] = datetime.utcnow().isoformat()
-        plan_data["updated_at"] = datetime.utcnow().isoformat()
-        
-        response = supabase.table("plans").insert(plan_data).execute()
-        
-        if not response.data:
-            raise ValueError("Erro ao criar plano")
-        
-        return Plan(**response.data[0])
+        async with await get_db_connection() as conn:
+            plan_data = plan_in.dict()
+            plan_id = await conn.fetchval(
+                """
+                INSERT INTO plans (name, description, type, price, message_limit, allowed_providers, is_active, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, $7)
+                RETURNING id
+                """,
+                plan_data["name"],
+                plan_data["description"],
+                plan_data["type"],
+                plan_data["price"],
+                plan_data["message_limit"],
+                plan_data["allowed_providers"],
+                datetime.utcnow()
+            )
+            row = await conn.fetchrow("SELECT * FROM plans WHERE id=$1", plan_id)
+            return Plan(**dict(row))
     
     @staticmethod
     async def get_plan(plan_id: int) -> Optional[Plan]:
@@ -42,13 +48,11 @@ class PlanService:
         Returns:
             Plano ou None se não encontrado
         """
-        supabase = get_supabase_client()
-        
-        response = supabase.table("plans").select("*").eq("id", plan_id).execute()
-        if not response.data:
-            return None
-        
-        return Plan(**response.data[0])
+        async with await get_db_connection() as conn:
+            row = await conn.fetchrow("SELECT * FROM plans WHERE id=$1 AND is_active=TRUE", plan_id)
+            if not row:
+                return None
+            return Plan(**dict(row))
     
     @staticmethod
     async def get_plans(skip: int = 0, limit: int = 100) -> PlanList:
@@ -62,14 +66,15 @@ class PlanService:
         Returns:
             Lista de planos
         """
-        supabase = get_supabase_client()
-        
-        response = supabase.table("plans").select("*", count="exact").order("price").range(skip, skip + limit - 1).execute()
-        
-        plans = [Plan(**item) for item in response.data]
-        total = response.count or 0
-        
-        return PlanList(plans=plans, total=total)
+        async with await get_db_connection() as conn:
+            rows = await conn.fetch(
+                "SELECT * FROM plans WHERE is_active=TRUE ORDER BY price OFFSET $1 LIMIT $2",
+                skip,
+                limit
+            )
+            total = await conn.fetchval("SELECT COUNT(*) FROM plans WHERE is_active=TRUE")
+            plans = [Plan(**dict(r)) for r in rows]
+            return PlanList(plans=plans, total=total)
     
     @staticmethod
     async def update_plan(plan_id: int, plan_in: PlanUpdate) -> Plan:
@@ -86,24 +91,24 @@ class PlanService:
         Raises:
             ValueError: Se o plano não for encontrado
         """
-        supabase = get_supabase_client()
-        
-        # Verificar se o plano existe
-        response = supabase.table("plans").select("*").eq("id", plan_id).execute()
-        if not response.data:
-            raise ValueError(f"Plano não encontrado: {plan_id}")
-        
-        # Preparar dados para atualização
-        update_data = plan_in.dict(exclude_unset=True)
-        update_data["updated_at"] = datetime.utcnow().isoformat()
-        
-        # Atualizar plano
-        response = supabase.table("plans").update(update_data).eq("id", plan_id).execute()
-        
-        if not response.data:
-            raise ValueError("Erro ao atualizar plano")
-        
-        return Plan(**response.data[0])
+        async with await get_db_connection() as conn:
+            exists = await conn.fetchrow("SELECT id FROM plans WHERE id=$1 AND is_active=TRUE", plan_id)
+            if not exists:
+                raise ValueError(f"Plano não encontrado: {plan_id}")
+            update_data = plan_in.dict(exclude_unset=True)
+            update_data["updated_at"] = datetime.utcnow()
+            set_parts = []
+            values = []
+            idx = 1
+            for k, v in update_data.items():
+                set_parts.append(f"{k}=${idx}")
+                values.append(v)
+                idx += 1
+            values.append(plan_id)
+            set_sql = ", ".join(set_parts)
+            query = f"UPDATE plans SET {set_sql} WHERE id=${idx} RETURNING *"
+            row = await conn.fetchrow(query, *values)
+            return Plan(**dict(row))
     
     @staticmethod
     async def delete_plan(plan_id: int) -> bool:
@@ -119,25 +124,15 @@ class PlanService:
         Raises:
             ValueError: Se o plano não for encontrado
         """
-        supabase = get_supabase_client()
-        
-        # Verificar se o plano existe
-        response = supabase.table("plans").select("*").eq("id", plan_id).execute()
-        if not response.data:
-            raise ValueError(f"Plano não encontrado: {plan_id}")
-        
-        # Desativar plano (soft delete)
-        update_data = {
-            "is_active": False,
-            "updated_at": datetime.utcnow().isoformat()
-        }
-        
-        response = supabase.table("plans").update(update_data).eq("id", plan_id).execute()
-        
-        if not response.data:
-            raise ValueError("Erro ao remover plano")
-        
-        return True
+        async with await get_db_connection() as conn:
+            row = await conn.fetchrow(
+                "UPDATE plans SET is_active=FALSE, updated_at=$1 WHERE id=$2 RETURNING id",
+                datetime.utcnow(),
+                plan_id
+            )
+            if not row:
+                raise ValueError(f"Plano não encontrado: {plan_id}")
+            return True
     
     @staticmethod
     async def get_default_plans() -> List[Dict[str, Any]]:

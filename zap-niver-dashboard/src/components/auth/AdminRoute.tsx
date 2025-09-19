@@ -1,7 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import { isAdmin } from '@/lib/store/supabase'
 import { Loader2 } from 'lucide-react'
 
 interface AdminRouteProps {
@@ -25,15 +24,9 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
         return
       }
 
-      try {
-        const adminStatus = await isAdmin()
-        setIsUserAdmin(adminStatus)
-      } catch (error) {
-        console.error('Erro ao verificar status de admin:', error)
-        setIsUserAdmin(false)
-      } finally {
-        setLoading(false)
-      }
+      // Verificar diretamente se o usuário é admin usando o campo is_admin
+      setIsUserAdmin(user?.is_admin === true)
+      setLoading(false)
     }
 
     checkAdminStatus()

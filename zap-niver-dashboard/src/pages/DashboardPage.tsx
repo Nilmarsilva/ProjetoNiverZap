@@ -7,6 +7,7 @@ import { WelcomeCard } from '@/components/dashboard/WelcomeCard'
 import { useAuthStore } from '@/stores/authStore'
 import { contactService } from '@/services/contactService'
 import { messageService } from '@/services/messageService'
+import { dashboardService } from '@/services/dashboardService'
 import { templateService } from '@/services/templateService'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -55,127 +56,39 @@ const DashboardPage = () => {
       try {
         setLoading(true)
         
-        // Usar dados mockados para o dashboard
+        // Buscar dados reais do backend
+        let totalContacts = 0;
+        let eventsToday = 0;
+        let monthlyMessages = 0;
+        let activeTemplates = 0;
         
-        // Total de contatos mockado
-        const totalContacts = 15
+        try {
+          const { stats } = await dashboardService.getStats();
+          totalContacts = stats.total_contacts;
+          eventsToday = stats.events_today;
+          monthlyMessages = stats.messages_sent_today;
+          activeTemplates = stats.active_templates;
+        } catch (error) {
+          console.error('Erro ao buscar estatísticas do dashboard:', error);
+          // Usar valores padrão se o endpoint falhar
+        }
         
-        // Eventos de hoje mockados
-        const todayEvents = [
-          {
-            id: 'birthday-mock-1',
-            contactId: 'mock-1',
-            contactName: 'Ana Silva',
-            contactPhone: '(11) 98765-4321',
-            eventType: 'aniversario',
-            eventDate: new Date().toISOString(),
-            eventName: 'Aniversário',
-            name: 'Ana Silva',
-            birth_date: new Date().toISOString()
-          },
-          {
-            id: 'mothers-day-mock-1',
-            contactId: 'mock-2',
-            contactName: 'Maria Oliveira',
-            contactPhone: '(11) 97654-3210',
-            eventType: 'dia-das-maes',
-            eventDate: new Date().toISOString(),
-            eventName: 'Dia das Mães',
-            name: 'Maria Oliveira',
-            birth_date: new Date().toISOString()
-          }
-        ]
+        try {
+          const upcoming = await dashboardService.getUpcomingEvents();
+          setUpcomingBirthdays(upcoming);
+        } catch (error) {
+          console.error('Erro ao buscar próximos eventos:', error);
+          setUpcomingBirthdays([]);
+        }
         
-        // Mensagens enviadas mockadas
-        const monthlyMessages = 42
-        
-        // Templates ativos mockados
-        const activeTemplates = 5
-        
-        // Próximos eventos mockados
-        const today = new Date()
-        const nextWeek = new Date(today)
-        nextWeek.setDate(today.getDate() + 7)
-        
-        const twoWeeksLater = new Date(today)
-        twoWeeksLater.setDate(today.getDate() + 14)
-        
-        const threeWeeksLater = new Date(today)
-        threeWeeksLater.setDate(today.getDate() + 21)
-        
-        const upcoming = [
-          {
-            id: 'birthday-mock-1',
-            contactId: 'mock-1',
-            contactName: 'Ana Silva',
-            contactPhone: '(11) 98765-4321',
-            eventType: 'aniversario',
-            eventDate: nextWeek.toISOString(),
-            eventName: 'Aniversário',
-            birth_date: nextWeek.toISOString(),
-            name: 'Ana Silva'
-          },
-          {
-            id: 'birthday-mock-2',
-            contactId: 'mock-2',
-            contactName: 'João Santos',
-            contactPhone: '(11) 97654-3210',
-            eventType: 'aniversario',
-            eventDate: twoWeeksLater.toISOString(),
-            eventName: 'Aniversário',
-            birth_date: twoWeeksLater.toISOString(),
-            name: 'João Santos'
-          },
-          {
-            id: 'mothers-day-mock-1',
-            contactId: 'mock-3',
-            contactName: 'Maria Oliveira',
-            contactPhone: '(11) 96543-2109',
-            eventType: 'dia-das-maes',
-            eventDate: threeWeeksLater.toISOString(),
-            eventName: 'Dia das Mães',
-            birth_date: threeWeeksLater.toISOString(),
-            name: 'Maria Oliveira'
-          },
-          {
-            id: 'fathers-day-mock-1',
-            contactId: 'mock-4',
-            contactName: 'Carlos Pereira',
-            contactPhone: '(11) 95432-1098',
-            eventType: 'dia-dos-pais',
-            eventDate: threeWeeksLater.toISOString(),
-            eventName: 'Dia dos Pais',
-            birth_date: threeWeeksLater.toISOString(),
-            name: 'Carlos Pereira'
-          }
-        ]
-        setUpcomingBirthdays(upcoming)
-        
-        // Atividades recentes mockadas
-        const recent = [
-          {
-            id: 'msg-1',
-            contacts: { name: 'Ana Silva' },
-            status: 'sent',
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'msg-2',
-            contacts: { name: 'João Santos' },
-            status: 'sent',
-            created_at: new Date(Date.now() - 86400000).toISOString() // Ontem
-          },
-          {
-            id: 'msg-3',
-            contacts: { name: 'Maria Oliveira' },
-            status: 'scheduled',
-            created_at: new Date(Date.now() - 172800000).toISOString() // Anteontem
-          }
-        ]
-        setRecentActivity(recent)
-        
-        // Definir loading como false para mostrar os dados
-        setLoading(false)
+        try {
+          const recent = await dashboardService.getRecentActivity();
+          setRecentActivity(recent);
+        } catch (error) {
+          console.error('Erro ao buscar atividade recente:', error);
+          setRecentActivity([]);
+        }
+
         
         // Atualizar estatísticas
         setStats([
@@ -187,11 +100,9 @@ const DashboardPage = () => {
           },
           {
             title: 'Eventos Hoje',
-            value: todayEvents.length.toString(),
+            value: eventsToday.toString(),
             icon: <Calendar className="h-8 w-8 text-datazap-light-green" />,
-            change: todayEvents.length > 0 
-              ? todayEvents.map(e => e.eventName).filter((v, i, a) => a.indexOf(v) === i).join(', ')
-              : 'Nenhum evento hoje'
+            change: eventsToday > 0 ? `${eventsToday} evento(s) hoje` : 'Nenhum evento hoje'
           },
           {
             title: 'Mensagens Enviadas',

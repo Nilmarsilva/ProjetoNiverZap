@@ -60,7 +60,7 @@ const RegisterPage = () => {
       
       // Registrar o usuário usando a API do backend
       const response = await apiService.auth.register({
-        name,
+        full_name: name,
         email,
         password
       })
@@ -76,10 +76,22 @@ const RegisterPage = () => {
       
     } catch (error: any) {
       console.error('Erro no registro:', error)
+      // Extrair mensagem detalhada do FastAPI
+      let msg = 'Ocorreu um erro ao tentar registrar sua conta. Tente novamente.';
+      const detail = error.response?.data?.detail;
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail)) {
+        msg = detail.map((d: any) => d.msg || d).join(', ');
+      } else if (error.response?.data?.error) {
+        msg = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        msg = error.response.data.message;
+      }
       toast({
-        title: "Erro no registro",
-        description: error.response?.data?.error || "Ocorreu um erro ao tentar registrar sua conta. Tente novamente.",
-        variant: "destructive"
+        title: 'Erro no registro',
+        description: msg,
+        variant: 'destructive',
       })
     } finally {
       setIsLoading(false)

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { contactService, Contact } from '@/services/contactService'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -94,80 +95,60 @@ import {
 } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-mobile'
 
-// Componente DatePicker personalizado
+// Componente DatePicker simplificado (apenas campo de texto)
 function DatePicker({ date, setDate }) {
+  const [inputValue, setInputValue] = useState(date ? format(date, "dd/MM/yyyy") : "");
+  
+  // Função para validar e converter a data digitada
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    
+    // Verificar se o valor corresponde ao formato dd/MM/yyyy
+    const dateRegex = /^(0[1-9]|[12][0-9]|3[01])[/](0[1-9]|1[012])[/](19|20)\d\d$/;
+    
+    if (dateRegex.test(value)) {
+      try {
+        // Converter para formato YYYY-MM-DD
+        const [day, month, year] = value.split('/').map(Number);
+        
+        // Criar a data usando UTC para evitar problemas de fuso horário
+        const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+        const newDate = new Date(formattedDate + 'T12:00:00Z');
+        
+        // Verificar se a data é válida
+        if (!isNaN(newDate.getTime())) {
+          console.log('Data válida criada:', formattedDate, newDate);
+          setDate(newDate);
+        } else {
+          console.error('Data inválida:', formattedDate);
+        }
+      } catch (error) {
+        console.error('Erro ao converter data:', error);
+      }
+    }
+  };
+  
+  // Atualizar o input quando a data mudar externamente
+  useEffect(() => {
+    if (date) {
+      setInputValue(format(date, "dd/MM/yyyy"));
+    }
+  }, [date]);
+  
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "w-full justify-start text-left font-normal",
-            !date && "text-muted-foreground"
-          )}
-        >
-          {date ? format(date, "dd/MM/yyyy") : "Selecione uma data"}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={setDate}
-          initialFocus
-        />
-      </PopoverContent>
-    </Popover>
-  )
+    <div className="flex flex-col space-y-1">
+      <Input
+        type="text"
+        placeholder="DD/MM/AAAA"
+        value={inputValue}
+        onChange={handleInputChange}
+      />
+      <p className="text-xs text-muted-foreground">Digite a data no formato DD/MM/AAAA</p>
+    </div>
+  );
 }
 
-// Função para classificar gênero com base no nome
-const classifyGenderByName = (name) => {
-  // Lista de nomes masculinos comuns no Brasil
-  const maleNames = [
-    'joão', 'josé', 'antônio', 'francisco', 'carlos', 'paulo', 'pedro', 'lucas', 
-    'luiz', 'marcos', 'luis', 'gabriel', 'rafael', 'daniel', 'marcelo', 
-    'bruno', 'eduardo', 'felipe', 'rodrigo', 'manoel', 'roberto', 'ricardo', 
-    'diego', 'fernando', 'andré', 'fábio', 'leonardo', 'gustavo', 'guilherme', 
-    'leandro', 'tiago', 'anderson', 'jorge', 'alex', 'renato', 'thiago', 
-    'alexandre', 'ivan', 'wilson', 'cesar', 'alan', 'nelson', 'edson', 'mario',
-    'vitor', 'mateus', 'david', 'rogério', 'claudio', 'samuel', 'ronaldo',
-    'alberto', 'silvio', 'joaquim', 'henrique', 'evandro', 'flávio', 'geraldo',
-    'adriano', 'valdir', 'milton', 'caio', 'augusto', 'raul', 'wagner', 'julio',
-    'rubens', 'gilberto', 'adilson', 'jair', 'nilton', 'benedito', 'raimundo',
-    'sebastião', 'davi', 'reginaldo', 'elias', 'mauro', 'arnaldo', 'sergio',
-    'otavio', 'hugo', 'vinicius', 'douglas', 'osvaldo', 'joel'
-  ];
-  
-  // Lista de nomes femininos comuns no Brasil
-  const femaleNames = [
-    'maria', 'ana', 'francisca', 'antônia', 'adriana', 'juliana', 'márcia', 
-    'fernanda', 'patricia', 'aline', 'sandra', 'camila', 'amanda', 'bruna', 
-    'jéssica', 'leticia', 'julia', 'luciana', 'vanessa', 'mariana', 'gabriela', 
-    'vera', 'vitória', 'larissa', 'mônica', 'cristina', 'daniela', 'carolina', 
-    'beatriz', 'lúcia', 'rita', 'claudia', 'fátima', 'regina', 'aparecida', 
-    'renata', 'rosa', 'eliane', 'silvia', 'isabela', 'carla', 'alice', 'manuela',
-    'giovanna', 'helena', 'valentina', 'isadora', 'lívia', 'cecília', 'lara',
-    'heloísa', 'melissa', 'eduarda', 'clara', 'bianca', 'rafaela', 'yasmin',
-    'laura', 'luiza', 'nicole', 'sophia', 'rebeca', 'eloá', 'joana', 'catarina',
-    'mirella', 'emanuelly', 'mariane', 'paloma', 'sabrina', 'cintia', 'stefany',
-    'marta', 'simone', 'rosana', 'elisa', 'andreia', 'raquel', 'milena', 'sueli',
-    'priscila', 'viviane', 'tatiana', 'solange', 'daiane', 'marlize', 'roberta'
-  ];
-  
-  // Extrair o primeiro nome
-  const firstName = name.split(' ')[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  
-  // Verificar se o nome está nas listas
-  if (maleNames.includes(firstName)) {
-    return 'masculino';
-  } else if (femaleNames.includes(firstName)) {
-    return 'feminino';
-  } else {
-    // Se não conseguir classificar, retorna 'nao-informado'
-    return 'nao-informado';
-  }
-};
 
 /**
  * Schema de validação para uma data comemorativa
@@ -199,9 +180,9 @@ const contatoFormSchema = z.object({
     required_error: "Data de nascimento é obrigatória",
   }),
   datasComemorativas: z.array(dataComemorativaSchema).optional(),
-  genero: z.enum(["masculino", "feminino", "outro", "nao-informado"], {
+  genero: z.enum(["masculino", "feminino"], {
     required_error: "Selecione um gênero",
-  }).default("nao-informado"),
+  }).default("masculino"),
   ativo: z.boolean().default(true),
   canalPreferido: z.enum(["whatsapp", "email"], {
     required_error: "Selecione um canal preferido",
@@ -224,13 +205,13 @@ interface DataComemorativa {
  * Tipo para representar um contato
  */
 interface Contato {
-  id: number
+  id: string // Alterado para string para compatibilidade com UUID do backend
   nome: string
   telefone: string
   email: string
   dataNascimento: string // Mantido para compatibilidade
   datasComemorativas: DataComemorativa[] // Nova propriedade para múltiplas datas
-  genero: 'masculino' | 'feminino' | 'outro' | 'nao-informado' // Campo para filtrar por gênero
+  genero: 'masculino' | 'feminino' // Campo para filtrar por gênero
   ativo: boolean // Campo para marcar contatos ativos/inativos
   canalPreferido: 'whatsapp' | 'email'
   grupo: string
@@ -442,129 +423,57 @@ const ContatosPage = () => {
     return datasExistentes;
   };
 
-  // Dados de exemplo para a tabela
-  const [contatos, setContatos] = useState<Contato[]>([
-    { 
-      id: 1, 
-      nome: 'Ana Silva', 
-      telefone: '(11) 98765-4321', 
-      email: 'ana.silva@email.com', 
-      dataNascimento: '15/03/1985', 
-      datasComemorativas: [
-        { tipo: 'aniversario', data: '15/03/1985' },
-        { tipo: 'dia-das-maes', data: '14/05/2023' }
-      ],
-      genero: 'feminino',
-      ativo: true,
-      canalPreferido: 'whatsapp', 
-      grupo: 'Cliente' 
-    },
-    { 
-      id: 2, 
-      nome: 'Marlize Laboissiere Silva', 
-      telefone: '(31) 98239-6966', 
-      email: 'marlizesilva@email.com', 
-      dataNascimento: '13/08/1968', 
-      datasComemorativas: [
-        { tipo: 'aniversario', data: '13/08/1968' },
-        { tipo: 'dia-das-maes', data: '14/05/2023' }
-      ],
-      genero: 'feminino',
-      ativo: true,
-      canalPreferido: 'whatsapp', 
-      grupo: 'Cliente' 
-    },
-    { 
-      id: 3, 
-      nome: 'Carlos Santos', 
-      telefone: '(11) 97654-3210', 
-      email: 'carlos.santos@email.com', 
-      dataNascimento: '22/07/1990', 
-      datasComemorativas: [
-        { tipo: 'aniversario', data: '22/07/1990' },
-        { tipo: 'dia-dos-pais', data: '13/08/2023' }
-      ],
-      genero: 'masculino',
-      ativo: true,
-      canalPreferido: 'whatsapp', 
-      grupo: 'Fornecedor' 
-    },
-    { 
-      id: 4, 
-      nome: 'Mariana Oliveira', 
-      telefone: '(11) 96543-2109', 
-      email: 'mariana.oliveira@email.com', 
-      dataNascimento: '10/12/1988', 
-      datasComemorativas: [
-        { tipo: 'aniversario', data: '10/12/1988' },
-        { tipo: 'natal', data: '25/12/2023' }
-      ],
-      genero: 'feminino',
-      ativo: true,
-      canalPreferido: 'whatsapp', 
-      grupo: 'Cliente' 
-    },
-    { 
-      id: 5, 
-      nome: 'Pedro Almeida', 
-      telefone: '(11) 95432-1098', 
-      email: 'pedro.almeida@email.com', 
-      dataNascimento: '05/09/1992', 
-      datasComemorativas: [
-        { tipo: 'aniversario', data: '05/09/1992' },
-        { tipo: 'ano-novo', data: '01/01/2024' }
-      ],
-      genero: 'masculino',
-      ativo: true,
-      canalPreferido: 'whatsapp', 
-      grupo: 'Parceiro' 
-    },
-    { 
-      id: 6, 
-      nome: 'Juliana Costa', 
-      telefone: '(11) 94321-0987', 
-      email: 'juliana.costa@email.com', 
-      dataNascimento: '18/06/1995', 
-      datasComemorativas: [
-        { tipo: 'aniversario', data: '18/06/1995' },
-        { tipo: 'pascoa', data: '09/04/2023' }
-      ],
-      genero: 'feminino',
-      ativo: false,
-      canalPreferido: 'whatsapp', 
-      grupo: 'Cliente' 
-    },
-    { 
-      id: 7, 
-      nome: 'Roberto Ferreira', 
-      telefone: '(11) 93210-9876', 
-      email: 'roberto.ferreira@email.com', 
-      dataNascimento: '30/11/1980', 
-      datasComemorativas: [
-        { tipo: 'aniversario', data: '30/11/1980' },
-        { tipo: 'dia-dos-pais', data: '13/08/2023' }
-      ],
-      genero: 'masculino',
-      ativo: true,
-      canalPreferido: 'whatsapp', 
-      grupo: 'Fornecedor' 
-    },
-    { 
-      id: 8, 
-      nome: 'Camila Rodrigues', 
-      telefone: '(11) 92109-8765', 
-      email: 'camila.rodrigues@email.com', 
-      dataNascimento: '25/04/1993', 
-      datasComemorativas: [
-        { tipo: 'aniversario', data: '25/04/1993' },
-        { tipo: 'dia-das-maes', data: '14/05/2023' }
-      ],
-      genero: 'feminino',
-      ativo: true,
-      canalPreferido: 'whatsapp', 
-      grupo: 'Cliente' 
-    }
-  ])
+  // Estado para armazenar os contatos
+  const [contatos, setContatos] = useState<Contato[]>([])
+  
+  // Carregar contatos do backend
+  useEffect(() => {
+    const fetchContatos = async () => {
+      try {
+        const contatosApi = await contactService.getUserContacts();
+        
+        // Converter do formato da API para o formato usado na página
+        const contatosFormatados: Contato[] = contatosApi.map((contato, index) => {
+          // Extrair dia e mês da data de nascimento para o formato dd/mm/yyyy
+          let dataNascimento = '';
+          let datasComemorativas: DataComemorativa[] = [];
+          
+          if (contato.birthday || contato.birth_date) {
+            const birthDate = new Date(contato.birthday || contato.birth_date);
+            dataNascimento = format(birthDate, 'dd/MM/yyyy');
+            
+            // Adicionar aniversário como data comemorativa
+            datasComemorativas.push({
+              tipo: 'aniversario',
+              data: dataNascimento
+            });
+          }
+          
+          return {
+            id: contato.id || `temp-${index + 1}`,
+            nome: contato.name,
+            telefone: contato.phone,
+            email: contato.email || '',
+            dataNascimento,
+            datasComemorativas,
+            genero: (contato.custom_fields?.genero as 'masculino' | 'feminino') || 'masculino',
+            ativo: true,
+            canalPreferido: 'whatsapp',
+            grupo: contato.group || 'Cliente'
+          };
+        });
+        
+        setContatos(contatosFormatados);
+      } catch (error) {
+        console.error('Erro ao carregar contatos:', error);
+        // Em caso de erro, manter a lista vazia
+        setContatos([]);
+      }
+    };
+    
+    fetchContatos();
+  }, []);
+  
 
   // Opções de grupos para o select
   const gruposOptions = ['Cliente', 'Parceiro', 'Fornecedor', 'Outro']
@@ -597,51 +506,111 @@ const ContatosPage = () => {
   ]
 
   // Handler para envio do formulário
-  const onSubmit = (data: ContatoFormValues) => {
-    if (selectedContato) {
-      // Formatar a data de nascimento
-      const dataNascimento = format(data.dataNascimento, 'dd/MM/yyyy');
+  const onSubmit = async (data: ContatoFormValues) => {
+    try {
+      // Preparar dados para a API
+      const formattedDate = data.dataNascimento ? format(data.dataNascimento, 'yyyy-MM-dd') : '2000-01-01';
+      console.log('Data formatada para envio:', formattedDate);
       
-      // Formatar as datas comemorativas
-      const datasComemorativas = data.datasComemorativas?.map(dc => ({
-        tipo: dc.tipo,
-        data: format(dc.data, 'dd/MM/yyyy'),
-        observacao: dc.observacao
-      })) || [];
-      
-      // Atualizar o contato com os novos dados
-      const contatoAtualizado: Contato = {
-        ...selectedContato,
-        nome: data.nome,
-        telefone: data.telefone,
-        email: data.email,
-        dataNascimento: dataNascimento,
-        datasComemorativas: datasComemorativas,
-        genero: data.genero as 'masculino' | 'feminino' | 'outro' | 'nao-informado',
-        ativo: data.ativo,
-        canalPreferido: data.canalPreferido as 'whatsapp' | 'email',
-        grupo: data.grupo
+      const contatoData = {
+        name: data.nome,
+        phone: data.telefone,
+        email: data.email || '',
+        birthday: data.dataNascimento ? format(data.dataNascimento, 'yyyy-MM-dd') : '2000-01-01', // Garantir que sempre tenha uma data válida no formato YYYY-MM-DD
+        notes: '', // Campo obrigatório no backend
+        group: data.grupo || 'Cliente',
+        custom_fields: {
+          genero: data.genero,
+          canal_preferido: data.canalPreferido,
+          ativo: data.ativo
+        }
       };
       
-      // Atualizar o contato na lista
-      const novosContatos = contatos.map(c => 
-        c.id === selectedContato.id ? contatoAtualizado : c
-      );
-      setContatos(novosContatos);
-      
-      // Atualizar o contato selecionado para mostrar os dados atualizados
-      setSelectedContato(contatoAtualizado);
-      
-      // Exibir mensagem de sucesso
+      if (selectedContato) {
+        // Atualizar contato existente
+        await contactService.updateContact(selectedContato.id, contatoData);
+        
+        // Formatar a data de nascimento para exibição
+        const dataNascimento = data.dataNascimento ? format(data.dataNascimento, 'dd/MM/yyyy') : '';
+        
+        // Formatar as datas comemorativas
+        const datasComemorativas = data.datasComemorativas?.map(dc => ({
+          tipo: dc.tipo,
+          data: format(dc.data, 'dd/MM/yyyy'),
+          observacao: dc.observacao
+        })) || [];
+        
+        // Atualizar o contato com os novos dados
+        const contatoAtualizado: Contato = {
+          ...selectedContato,
+          nome: data.nome,
+          telefone: data.telefone,
+          email: data.email || '',
+          dataNascimento: dataNascimento,
+          datasComemorativas: datasComemorativas,
+          genero: data.genero as 'masculino' | 'feminino',
+          ativo: data.ativo,
+          canalPreferido: data.canalPreferido as 'whatsapp' | 'email',
+          grupo: data.grupo || 'Cliente'
+        };
+        
+        // Atualizar o contato na lista local
+        const novosContatos = contatos.map(c => 
+          c.id === selectedContato.id ? contatoAtualizado : c
+        );
+        setContatos(novosContatos);
+        
+        // Atualizar o contato selecionado para mostrar os dados atualizados
+        setSelectedContato(contatoAtualizado);
+        
+        // Exibir mensagem de sucesso
+        toast({
+          title: "Contato atualizado",
+          description: `${data.nome} foi atualizado com sucesso!`,
+        });
+        
+        // Fechar o modal após a atualização bem-sucedida
+        setOpenDialog(false);
+      } else {
+        // Adicionar novo contato
+        const novoContatoApi = await contactService.createContact(contatoData as any);
+        
+        // Adicionar o novo contato à lista local
+        const novoContato: Contato = {
+          id: novoContatoApi.id, // Usar o ID como string, sem conversão
+          nome: novoContatoApi.name,
+          telefone: novoContatoApi.phone,
+          email: novoContatoApi.email || '',
+          dataNascimento: (novoContatoApi.birthday || novoContatoApi.birth_date) ? format(new Date(novoContatoApi.birthday || novoContatoApi.birth_date), 'dd/MM/yyyy') : '',
+          datasComemorativas: (novoContatoApi.birthday || novoContatoApi.birth_date) ? [
+            {
+              tipo: 'aniversario',
+              data: format(new Date(novoContatoApi.birthday || novoContatoApi.birth_date), 'dd/MM/yyyy')
+            }
+          ] : [],
+          genero: (novoContatoApi.custom_fields?.genero as 'masculino' | 'feminino') || 'masculino',
+          ativo: true,
+          canalPreferido: 'whatsapp' as 'whatsapp' | 'email',
+          grupo: novoContatoApi.group || 'Cliente'
+        };
+        
+        setContatos([...contatos, novoContato]);
+        
+        // Exibir mensagem de sucesso
+        toast({
+          title: "Contato adicionado",
+          description: `${data.nome} foi adicionado com sucesso!`,
+        });
+        
+        // Fechar o modal após o cadastro bem-sucedido
+        setOpenDialog(false);
+      }
+    } catch (error) {
+      console.error('Erro ao salvar contato:', error);
       toast({
-        title: "Contato atualizado",
-        description: `${data.nome} foi atualizado com sucesso!`,
-      });
-    } else {
-      // Lógica para criar contato
-      toast({
-        title: "Contato adicionado",
-        description: `${data.nome} foi adicionado com sucesso!`,
+        title: "Erro",
+        description: "Ocorreu um erro ao salvar o contato. Tente novamente.",
+        variant: "destructive"
       });
     }
     
@@ -704,18 +673,34 @@ const ContatosPage = () => {
     setViewMode('details')
   }
 
-  const handleDeleteContato = (contato: Contato) => {
-    // Lógica para deletar contato 
-    toast({
-      title: "Contato removido",
-      description: `${contato.nome}
-
-  // Função para cancelar a edição
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-  }; foi removido com sucesso!`,
-      variant: "destructive",
-    })
+  const handleDeleteContato = async (contato: Contato) => {
+    // Confirmar exclusão
+    if (window.confirm('Tem certeza que deseja excluir este contato?')) {
+      try {
+        // Excluir o contato na API
+        await contactService.deleteContact(contato.id);
+        
+        // Filtrar o contato excluído da lista local
+        setContatos(contatos.filter(c => c.id !== contato.id));
+        
+        // Fechar o modal de detalhes se estiver aberto
+        setSelectedContato(null);
+        
+        // Mostrar mensagem de sucesso
+        toast({
+          title: "Contato removido",
+          description: `${contato.nome} foi removido com sucesso!`,
+          variant: "destructive",
+        });
+      } catch (error) {
+        console.error('Erro ao excluir contato:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível excluir o contato. Tente novamente.",
+          variant: "destructive"
+        });
+      }
+    }
   }
 
   const handleViewDetails = (contato: Contato) => {
@@ -1140,13 +1125,13 @@ const ContatosPage = () => {
                                          }
                                          
                                          const newContato: Contato = {
-                                           id: contatos.length + processedContacts.length + 1,
+                                           id: `temp-${contatos.length + processedContacts.length + 1}`,
                                            nome: row.nome,
                                            telefone: telefoneFormatado,
                                            email: '',
                                           dataNascimento: row.dataNascimento || '01/01/1970',
                                           datasComemorativas: [],
-                                          genero: (genero as 'masculino' | 'feminino' | 'outro' | 'nao-informado') || 'nao-informado',
+                                          genero: (genero as 'masculino' | 'feminino'),
                                           ativo: true, // Todos os contatos importados são sempre ativos
                                           canalPreferido: 'whatsapp', // Padronizado para WhatsApp
                                           grupo: row.grupo || 'Cliente' // Grupo padrão é 'Cliente' quando não especificado
@@ -1256,13 +1241,13 @@ const ContatosPage = () => {
                                          }
                                          
                                          const newContato: Contato = {
-                                           id: contatos.length + processedContacts.length + 1,
+                                           id: `temp-${contatos.length + processedContacts.length + 1}`,
                                            nome: row.nome,
                                            telefone: telefoneFormatado,
                                            email: '',
                                           dataNascimento: row.dataNascimento || '01/01/1970',
                                           datasComemorativas: [],
-                                          genero: (genero as 'masculino' | 'feminino' | 'outro' | 'nao-informado') || 'nao-informado',
+                                          genero: (genero as 'masculino' | 'feminino'),
                                           ativo: true, // Todos os contatos importados são sempre ativos
                                           canalPreferido: 'whatsapp', // Padronizado para WhatsApp
                                           grupo: row.grupo || 'Cliente' // Grupo padrão é 'Cliente' quando não especificado
@@ -1438,15 +1423,99 @@ const ContatosPage = () => {
                 {importStatus === 'success' && (
                   <Button 
                     type="button" 
-                    onClick={() => {
-                      // Adicionar os contatos importados à lista atual
-                      const newContatos = [...contatos, ...importedContacts];
-                      setContatos(newContatos);
-                      setOpenImportDialog(false);
-                      toast({
-                        title: "Contatos importados",
-                        description: `${importedContacts.length} contatos foram importados com sucesso!`,
-                      });
+                    onClick={async () => {
+                      try {
+                        // Salvar os contatos importados no backend
+                        const contatosSalvos = [];
+                        let erros = 0;
+                        
+                        for (const contato of importedContacts) {
+                          try {
+                            // Preparar dados para a API
+                            const contatoData = {
+                              name: contato.nome,
+                              phone: contato.telefone,
+                              email: contato.email || '',
+                              birthday: contato.dataNascimento ? (() => {
+                                const [day, month, year] = contato.dataNascimento.split('/').map(Number);
+                                return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                              })() : '2000-01-01', // Garantir que sempre tenha uma data válida no formato YYYY-MM-DD
+                              notes: '', // Campo obrigatório no backend
+                              group: contato.grupo || 'Cliente',
+                              custom_fields: {
+                                genero: contato.genero,
+                                canal_preferido: contato.canalPreferido,
+                                ativo: contato.ativo
+                              }
+                            };
+                            
+                            // Salvar no backend
+                            const novoContatoApi = await contactService.createContact(contatoData as any);
+                            contatosSalvos.push(novoContatoApi);
+                          } catch (error) {
+                            console.error(`Erro ao salvar contato ${contato.nome}:`, error);
+                            erros++;
+                          }
+                        }
+                        
+                        // Atualizar a lista de contatos na interface
+                        if (contatosSalvos.length > 0) {
+                          // Buscar todos os contatos novamente para garantir dados atualizados
+                          const contatosAtualizados = await contactService.getUserContacts();
+                          const contatosFormatados = contatosAtualizados.map((contato, index) => {
+                            let dataNascimento = '';
+                            let datasComemorativas: DataComemorativa[] = [];
+                            
+                            if (contato.birthday || contato.birth_date) {
+                              const birthDate = new Date(contato.birthday || contato.birth_date);
+                              dataNascimento = format(birthDate, 'dd/MM/yyyy');
+                              
+                              datasComemorativas.push({
+                                tipo: 'aniversario',
+                                data: dataNascimento
+                              });
+                            }
+                            
+                            return {
+                              id: contato.id || `temp-${index + 1}`,
+                              nome: contato.name,
+                              telefone: contato.phone,
+                              email: contato.email || '',
+                              dataNascimento,
+                              datasComemorativas,
+                              genero: (contato.custom_fields?.genero as 'masculino' | 'feminino') || 'masculino',
+                              ativo: true,
+                              canalPreferido: 'whatsapp' as 'whatsapp' | 'email',
+                              grupo: contato.group || 'Cliente'
+                            };
+                          });
+                          
+                          setContatos(contatosFormatados);
+                        }
+                        
+                        setOpenImportDialog(false);
+                        
+                        // Mostrar mensagem de sucesso com alerta de erros, se houver
+                        if (erros > 0) {
+                          toast({
+                            title: "Importação parcial",
+                            description: `${contatosSalvos.length} contatos importados com sucesso. ${erros} contatos não puderam ser importados.`,
+                            variant: "destructive"
+                          });
+                        } else {
+                          toast({
+                            title: "Contatos importados",
+                            description: `${contatosSalvos.length} contatos foram importados com sucesso!`,
+                          });
+                        }
+                      } catch (error) {
+                        console.error('Erro na importação de contatos:', error);
+                        toast({
+                          title: "Erro na importação",
+                          description: "Ocorreu um erro ao importar os contatos. Tente novamente.",
+                          variant: "destructive"
+                        });
+                      }
                     }}
                   >
                     Concluir Importação
@@ -1471,7 +1540,7 @@ const ContatosPage = () => {
           
           {/* Formulário em Dialog */}
           <Dialog open={openDialog} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {selectedContato ? `Editar Contato: ${selectedContato.nome}` : 'Adicionar Novo Contato'}
@@ -1531,44 +1600,38 @@ const ContatosPage = () => {
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Data de Nascimento</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "dd/MM/yyyy")
-                                ) : (
-                                  <span>Selecione uma data</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <FormControl>
+                          <DatePicker date={field.value} setDate={field.onChange} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="genero"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Gênero</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um gênero" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="masculino">Masculino</SelectItem>
+                            <SelectItem value="feminino">Feminino</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
                   {/* Seção de Datas Comemorativas */}
-                  <div className="space-y-4">
+                  <div className="mt-6 space-y-4">
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-medium">Datas Comemorativas</h3>
                       <div className="flex space-x-2">
@@ -1707,40 +1770,15 @@ const ContatosPage = () => {
                           )}
                         />
 
-                        <FormField
+                          <FormField
                           control={form.control}
                           name={`datasComemorativas.${index}.data`}
                           render={({ field }) => (
                             <FormItem className="flex flex-col">
                               <FormLabel>Data</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant="outline"
-                                      className={cn(
-                                        "w-full pl-3 text-left font-normal",
-                                        !field.value && "text-muted-foreground"
-                                      )}
-                                    >
-                                      {field.value ? (
-                                        format(field.value, "dd/MM/yyyy")
-                                      ) : (
-                                        <span>Selecione uma data</span>
-                                      )}
-                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar
-                                    mode="single"
-                                    selected={field.value}
-                                    onSelect={field.onChange}
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
+                              <FormControl>
+                                <DatePicker date={field.value} setDate={field.onChange} />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -1836,8 +1874,8 @@ const ContatosPage = () => {
                   />
                   
                   <DialogFooter className="pt-4">
-                    <Button type="submit">
-                      {selectedContato ? 'Atualizar Contato' : 'Adicionar Contato'}
+                    <Button type="submit" onClick={form.handleSubmit(onSubmit)} className="w-full md:w-auto">
+                      {selectedContato ? 'Salvar Alterações' : 'Adicionar Contato'}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -1923,8 +1961,8 @@ const ContatosPage = () => {
             <div className="bg-white p-6 rounded-lg border">
               {isEditing ? (
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
                         name="nome"
@@ -1934,6 +1972,7 @@ const ContatosPage = () => {
                             <FormControl>
                               <Input {...field} />
                             </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -1945,8 +1984,9 @@ const ContatosPage = () => {
                           <FormItem>
                             <FormLabel>Telefone</FormLabel>
                             <FormControl>
-                              <Input {...field} />
+                              <Input {...field} placeholder="(00) 00000-0000" />
                             </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -1958,8 +1998,9 @@ const ContatosPage = () => {
                           <FormItem>
                             <FormLabel>Email</FormLabel>
                             <FormControl>
-                              <Input {...field} />
+                              <Input {...field} placeholder="email@exemplo.com" />
                             </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -1968,14 +2009,13 @@ const ContatosPage = () => {
                         control={form.control}
                         name="dataNascimento"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="flex flex-col">
                             <FormLabel>Data de Nascimento</FormLabel>
-                            <FormControl>
-                              <DatePicker 
-                                date={field.value} 
-                                setDate={(date) => field.onChange(date)}
-                              />
-                            </FormControl>
+                            <DatePicker 
+                              date={field.value} 
+                              setDate={field.onChange} 
+                            />
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -1986,21 +2026,18 @@ const ContatosPage = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Gênero</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Selecione o gênero" />
+                                  <SelectValue placeholder="Selecione um gênero" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
                                 <SelectItem value="masculino">Masculino</SelectItem>
                                 <SelectItem value="feminino">Feminino</SelectItem>
-                                <SelectItem value="nao-informado">Não informado</SelectItem>
                               </SelectContent>
                             </Select>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -2010,23 +2047,22 @@ const ContatosPage = () => {
                         name="grupo"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Classificação</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
+                            <FormLabel>Grupo/Tag</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Selecione a classificação" />
+                                  <SelectValue placeholder="Selecione um grupo" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="Cliente">Cliente</SelectItem>
-                                <SelectItem value="Fornecedor">Fornecedor</SelectItem>
-                                <SelectItem value="Parceiro">Parceiro</SelectItem>
-                                <SelectItem value="Outro">Outro</SelectItem>
+                                {gruposOptions.map(grupo => (
+                                  <SelectItem key={grupo} value={grupo}>
+                                    {grupo}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -2037,19 +2073,18 @@ const ContatosPage = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Canal Preferido</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Selecione o canal" />
+                                  <SelectValue placeholder="Selecione um canal" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
                                 <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                                <SelectItem value="email">Email</SelectItem>
                               </SelectContent>
                             </Select>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -2058,16 +2093,21 @@ const ContatosPage = () => {
                         control={form.control}
                         name="ativo"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                             <FormControl>
                               <Checkbox
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
                             </FormControl>
-                            <FormLabel className="font-normal">
-                              Contato ativo
-                            </FormLabel>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                Contato Ativo
+                              </FormLabel>
+                              <FormDescription>
+                                Contatos inativos não receberão mensagens automáticas.
+                              </FormDescription>
+                            </div>
                           </FormItem>
                         )}
                       />

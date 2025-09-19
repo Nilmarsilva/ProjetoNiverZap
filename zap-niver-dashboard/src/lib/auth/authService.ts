@@ -2,12 +2,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+
 // Definição do tipo de usuário
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'user' | 'admin';
+  role?: 'user' | 'admin';
+  is_admin?: boolean;
+  full_name?: string;
 }
 
 // Interface para o estado de autenticação
@@ -175,7 +178,7 @@ export const isAuthenticated = (): boolean => {
 
 export const isAdmin = (): boolean => {
   const user = useAuthStore.getState().user;
-  return user?.role === 'admin';
+  return user?.is_admin === true;
 };
 
 // Objeto de serviço para uso em outros componentes

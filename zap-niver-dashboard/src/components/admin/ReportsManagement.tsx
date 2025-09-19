@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
-import { supabase } from '@/lib/store/supabase'
+import { supabase } from '@/lib/store/apiClient'
 import { RefreshCw, Download, BarChart3, Users, MessageSquare } from 'lucide-react'
 import {
   Chart as ChartJS,
@@ -57,7 +57,7 @@ const ReportsManagement = () => {
   const fetchUsersByPlan = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase.rpc('get_users_by_plan')
+      const { data, error } = await supabase.rpc('get_users_by_plan').select()
 
       if (error) {
         throw error

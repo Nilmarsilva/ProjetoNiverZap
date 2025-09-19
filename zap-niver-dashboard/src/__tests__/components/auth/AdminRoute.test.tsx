@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import AdminRoute from '@/components/auth/AdminRoute'
 import { useAuthStore } from '@/stores/authStore'
-import { isAdmin } from '@/lib/store/supabase'
+import { isAdmin } from '@/lib/store/apiClient'
 
 // Mock do hook useAuthStore
 vi.mock('@/stores/authStore', () => ({
@@ -11,7 +11,7 @@ vi.mock('@/stores/authStore', () => ({
 }))
 
 // Mock da função isAdmin
-vi.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/store/apiClient', () => ({
   isAdmin: vi.fn(),
 }))
 

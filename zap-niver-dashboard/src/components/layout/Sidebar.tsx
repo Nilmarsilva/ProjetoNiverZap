@@ -31,7 +31,7 @@ const Sidebar = () => {
   const navigate = useNavigate()
   
   // Verificar se o usuário é administrador
-  const isAdmin = user?.email === 'admin@datazap.com'
+  const isAdmin = user?.is_admin === true
   
   const toggleSidebar = () => {
     setCollapsed(!collapsed)

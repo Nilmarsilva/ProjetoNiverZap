@@ -71,7 +71,7 @@ const LoginPage = () => {
             max_templates: isAdmin ? 50 : 5,
             price: 0,
           },
-          isAdmin: isAdmin
+          is_admin: isAdmin
         })
         
         // Disparar evento de login bem-sucedido
