@@ -9,6 +9,7 @@ import AuthInitializer from "./components/auth/AuthInitializer";
 import AuthRedirect from "./components/auth/AuthRedirect";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import ContatosPage from "./pages/ContatosPage";
 import TemplatesComemorativosPage from "./pages/TemplatesComemorativosPage";
@@ -47,6 +48,7 @@ const App = () => (
             {/* Rotas de autenticação */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             
             {/* Rotas protegidas da aplicação */}
             <Route path="/dashboard" element={<DashboardPage />} />

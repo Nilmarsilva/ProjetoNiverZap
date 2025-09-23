@@ -57,6 +57,16 @@ class Settings(BaseSettings):
     ASAAS_API_KEY: str = ""
     MONETIZZE_API_KEY: str = ""
     
+    # Email settings
+    EMAIL_SMTP_SERVER: str = "smtp.hostinger.com"
+    EMAIL_SMTP_PORT: int = 465
+    EMAIL_SENDER: str = "senhas@authbrasil.com.br"
+    EMAIL_PASSWORD: str = "q6DR1DI?"
+    EMAIL_USE_SSL: bool = True
+    
+    # Frontend URL para links de recuperação de senha
+    FRONTEND_URL: str = "http://localhost:3000"
+    
     class Config:
         case_sensitive = True
         env_file = ".env"

@@ -1,11 +1,14 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import users, auth, contacts, templates, messages, plans, dashboard
+from app.api.v1.endpoints import users, auth, auth_recovery, contacts, templates, messages, plans, dashboard
 
 api_router = APIRouter()
 
 # Rotas de autenticação
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+
+# Rotas de recuperação de senha
+api_router.include_router(auth_recovery.router, prefix="/auth", tags=["auth"])
 
 # Rotas de usuários
 api_router.include_router(users.router, prefix="/users", tags=["users"])
